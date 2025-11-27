@@ -1,0 +1,10 @@
+/* src/styles/LandingLayout.css */
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
