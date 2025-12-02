@@ -7,6 +7,11 @@ import Chatbot from "../pages/Chatbot.jsx";
 import DashboardLayout from "../layouts/DashboardLayout.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
 
+import RegisterLayout from "../layouts/RegisterLayout.jsx";
+import Register from "../pages/Register.jsx";
+
+              
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -20,6 +25,11 @@ export default function AppRoutes() {
       {/* Dashboard */}
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
+      </Route>
+
+       {/* Register */}
+      <Route path="/register" element={<RegisterLayout />}>
+        <Route index element={<Register />} />
       </Route>
     </Routes>
   );
