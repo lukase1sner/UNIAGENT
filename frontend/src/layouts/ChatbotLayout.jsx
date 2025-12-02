@@ -1,129 +1,55 @@
-// src/layouts/DashboardLayout.jsx
-import { useState } from "react";
-import { Outlet, Link } from "react-router-dom";
-import { Menu, Home, HelpCircle, Link as LinkIcon, Bot, User } from "lucide-react";
-import "../styles/Dashboard.css";
+// src/layouts/ChatbotLayout.jsx
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { Plus, Search, MessageSquare } from "lucide-react";
 
-export default function DashboardLayout() {
-  const [open, setOpen] = useState(true);
-  const iconSize = 22;
-
+export default function ChatbotLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
+    <div className="w-screen h-screen flex bg-gray-50">
+      {/* Sidebar */}
+      <aside className="w-72 bg-white border-r shadow-sm flex flex-col p-4">
+        <h1 className="text-2xl font-bold mb-6 tracking-tight">UNIAGENT</h1>
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-sm z-20">
-        <h1 className="text-2xl font-bold tracking-tight">UNIAGENT</h1>
-
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span className="hidden sm:inline">Willkommen, Lukas</span>
-          <button className="px-5 py-2 rounded-full border border-black font-medium hover:bg-black hover:text-white transition">
-            Abmelden
+        <nav className="flex flex-col gap-4">
+          <button className="flex items-center gap-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition text-gray-700 cursor-pointer">
+            <Plus size={20} />
+            Neuer Chat
           </button>
-        </div>
-      </header>
 
-      <div
-        className="flex flex-1 overflow-hidden"
-        style={{
-          "--sidebar-width": open ? "260px" : "80px",
-        }}
-      >
-        {/* Sidebar */}
-        <aside
-          className={`${
-            open ? "w-[260px]" : "w-[80px]"
-          } transition-all duration-300 bg-white border-r border-gray-200 flex flex-col z-10`}
-        >
-          <nav className="px-4 py-4 flex-1">
-            <ul className="flex flex-col gap-6">
+          <button className="flex items-center gap-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition text-gray-700 cursor-pointer">
+            <Search size={20} />
+            Chats suchen
+          </button>
 
-              {/* Menü Icon */}
-              <li>
-                <button
-                  onClick={() => setOpen(!open)}
-                  aria-label="Sidebar umschalten"
-                  className={`flex items-center p-2 rounded-lg transition ${
-                    open ? "hover:bg-gray-100 w-auto" : "hover:bg-gray-100 w-full justify-center"
-                  }`}
-                >
-                  <Menu size={iconSize} className="text-gray-700" />
-                </button>
-              </li>
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-gray-500 mb-2">
+              Deine Chats
+            </h3>
 
-              {/* Navigation */}
-              <li>
-                <Link
-                  to="/dashboard"
-                  className={`flex p-2 rounded-lg transition ${
-                    open ? "items-center gap-3" : "justify-center"
-                  } hover:bg-gray-100`}
-                >
-                  <Home size={iconSize} className="text-gray-600" />
-                  {open && <span className="text-sm">Dashboard</span>}
-                </Link>
-              </li>
+            <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-2">
+              <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition cursor-pointer">
+                <MessageSquare size={16} />
+                Bewerbung Informatik
+              </button>
 
-              <li>
-                <Link
-                  to="/dashboard/faq"
-                  className={`flex p-2 rounded-lg transition ${
-                    open ? "items-center gap-3" : "justify-center"
-                  } hover:bg-gray-100`}
-                >
-                  <HelpCircle size={iconSize} className="text-sky-600" />
-                  {open && <span className="text-sm">Häufig gestellte Fragen</span>}
-                </Link>
-              </li>
+              <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition cursor-pointer">
+                <MessageSquare size={16} />
+                Prüfung anmelden
+              </button>
 
-              <li>
-                <Link
-                  to="/dashboard/links"
-                  className={`flex p-2 rounded-lg transition ${
-                    open ? "items-center gap-3" : "justify-center"
-                  } hover:bg-gray-100`}
-                >
-                  <LinkIcon size={iconSize} className="text-teal-600" />
-                  {open && <span className="text-sm">Nützliche Links</span>}
-                </Link>
-              </li>
+              <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition cursor-pointer">
+                <MessageSquare size={16} />
+                Campus Card verloren
+              </button>
+            </div>
+          </div>
+        </nav>
+      </aside>
 
-              <li>
-                <Link
-                  to="/chat"
-                  className={`flex p-2 rounded-lg transition ${
-                    open ? "items-center gap-3" : "justify-center"
-                  } hover:bg-gray-100`}
-                >
-                  <Bot size={iconSize} className="text-purple-600" />
-                  {open && <span className="text-sm">Chatbot fragen</span>}
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/dashboard/me"
-                  className={`flex p-2 rounded-lg transition ${
-                    open ? "items-center gap-3" : "justify-center"
-                  } hover:bg-gray-100`}
-                >
-                  <User size={iconSize} className="text-amber-700" />
-                  {open && <span className="text-sm">Mein Bereich</span>}
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        </aside>
-
-        {/* MAIN → wichtig: relative */}
-        <main className="flex-1 overflow-auto p-8 relative">
-          <Outlet />
-        </main>
-      </div>
-
-      <footer className="bg-white border-t border-gray-200 py-3 text-center text-sm text-gray-500">
-        © 2025 UNIAGENT
-      </footer>
+      {/* Main Chat View */}
+      <main className="flex-1 flex flex-col">
+        <Outlet />
+      </main>
     </div>
   );
 }
