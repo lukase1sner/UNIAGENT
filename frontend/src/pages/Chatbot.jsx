@@ -22,6 +22,8 @@ export default function Chatbot() {
     setInput("");
   };
 
+  const isReadyToSend = input.trim().length > 0;
+
   return (
     <div className="flex flex-col h-full">
 
@@ -37,7 +39,7 @@ export default function Chatbot() {
             <div
               className={`px-4 py-3 rounded-xl max-w-xl text-sm ${
                 m.sender === "user"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-[#98C73C] text-white"
                   : "bg-gray-200 text-gray-800"
               }`}
             >
@@ -47,7 +49,7 @@ export default function Chatbot() {
         ))}
       </div>
 
-      {/* Eingabebereich – ohne weißen Hintergrund */}
+      {/* Eingabebereich */}
       <div className="px-4 pb-4 pt-2">
 
         {/* Gradient Außenrahmen */}
@@ -74,16 +76,21 @@ export default function Chatbot() {
               className="w-full px-4 py-3 pl-14 pr-14 rounded-xl focus:outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) =>
+                e.key === "Enter" && isReadyToSend && sendMessage()
+              }
             />
 
-            {/* Sendebutton rechts */}
+            {/* Sende-Button rechts */}
             <button
               onClick={sendMessage}
-              className="absolute right-2 top-1/2 -translate-y-1/2
-                         w-10 h-10 flex items-center justify-center
-                         bg-[#98C73C] text-white rounded-full
-                         hover:bg-[#7da32f] transition"
+              disabled={!isReadyToSend}
+              className={
+                "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full transition " +
+                (isReadyToSend
+                  ? "bg-[#98C73C] text-white hover:bg-[#7da32f] cursor-pointer"
+                  : "bg-[#cfe5a9] text-white cursor-default")
+              }
             >
               <span className="material-symbols-outlined text-[22px]">
                 arrow_upward_alt
