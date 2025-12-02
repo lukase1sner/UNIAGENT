@@ -1,6 +1,5 @@
-// src/layouts/RegisterLayout.jsx
 import { Outlet } from "react-router-dom";
-import "../styles/Register.css"; // darf bleiben, macht aber nichts mehr
+import "../styles/Register.css";
 
 export default function RegisterLayout() {
   return (
@@ -31,13 +30,24 @@ export default function RegisterLayout() {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="relative z-20 bg-[#98C73C] py-4 text-center text-xs text-white md:text-sm">
-        <p className="font-medium">© 2025 UNIAGENT</p>
-        <div className="mt-1 flex justify-center gap-6">
-          <a href="#" className="hover:underline">Datenschutz</a>
-          <a href="#" className="hover:underline">Impressum</a>
-          <a href="#" className="hover:underline">Kontakt</a>
+      {/* FOOTER – grüner Hintergrund + jetzt schwarze Schrift */}
+      <footer className="bg-[#98C73C] mt-0">
+        <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row
+                        items-center justify-between gap-6">
+
+          {/* Left Section */}
+          <p className="text-black text-sm">
+            © {new Date().getFullYear()} UNIAGENT
+          </p>
+
+          {/* Right Section – Links */}
+          <div className="flex items-center gap-6 text-sm text-black">
+            <a href="/#funktionen" className="hover:text-gray-800 transition">Funktionen</a>
+            <a href="/#kontakt" className="hover:text-gray-800 transition">Kontakt</a>
+            <a href="/impressum" className="hover:text-gray-800 transition">Impressum</a>
+            <a href="/datenschutz" className="hover:text-gray-800 transition">Datenschutz</a>
+          </div>
+
         </div>
       </footer>
     </div>
