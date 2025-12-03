@@ -10,6 +10,9 @@ import Dashboard from "../pages/Dashboard.jsx";
 import RegisterLayout from "../layouts/RegisterLayout.jsx";
 import Register from "../pages/Register.jsx";
 
+import LoginLayout from "../layouts/LoginLayout.jsx";
+import Login from "../pages/Login.jsx";
+
               
 
 export default function AppRoutes() {
@@ -31,6 +34,13 @@ export default function AppRoutes() {
       <Route path="/register" element={<RegisterLayout />}>
         <Route index element={<Register />} />
       </Route>
+
+       {/* Login */}
+      <Route path="/login" element={<LoginLayout />}>
+        <Route index element={<Login />} />
+      </Route>
     </Routes>
+
+    
   );
 }
