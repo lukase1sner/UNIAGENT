@@ -77,8 +77,8 @@ export default function LoginLayout() {
         </div>
       </main>
 
-      {/* FOOTER – #98C73C */}
-      <footer className="bg-[#98C73C] mt-0">
+      {/* FOOTER – #E4ECD9 */}
+      <footer className="bg-[#E4ECD9] mt-0">
         <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-black text-sm">© {new Date().getFullYear()} UNIAGENT</p>
 
