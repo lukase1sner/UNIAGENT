@@ -1,8 +1,8 @@
-// src/layouts/ChatbotLayout.jsx
+// src/layouts/ChatbotStartLayout.jsx
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 
-export default function ChatbotLayout() {
+export default function ChatbotStartLayout() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -22,9 +22,9 @@ export default function ChatbotLayout() {
         {collapsed ? (
           /* Eingeklappte Sidebar */
           <div className="flex flex-col items-center justify-between h-full">
-
-            {/* Logo + Menu */}
+            {/* Oben: Logo + Menu */}
             <div className="flex flex-col items-center gap-4 mt-1">
+              {/* Logo Kreis */}
               <div
                 className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center
                            font-semibold text-sm shadow-md"
@@ -33,16 +33,18 @@ export default function ChatbotLayout() {
                 🎓
               </div>
 
+              {/* Menu Button */}
               <button
                 onClick={() => setCollapsed(false)}
-                title="Sidebar öffnen"
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                title="Sidebar öffnen"
               >
                 <span className="material-symbols-outlined text-[24px]">
                   menu
                 </span>
               </button>
 
+              {/* Neuer Chat */}
               <button
                 title="Neuer Chat"
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
@@ -52,6 +54,7 @@ export default function ChatbotLayout() {
                 </span>
               </button>
 
+              {/* Chats suchen */}
               <button
                 title="Chats suchen"
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
@@ -65,8 +68,7 @@ export default function ChatbotLayout() {
             {/* Avatar */}
             <div className="mb-2">
               <div
-                className="w-10 h-10 rounded-full bg-[#98C73C] text-black flex items-center justify-center
-                           font-semibold text-sm"
+                className="w-10 h-10 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-sm"
                 title="Lukas Eisner"
               >
                 LE
@@ -116,13 +118,14 @@ export default function ChatbotLayout() {
                 Chats suchen
               </button>
 
-              {/* ⭐ Deine Chats – nur „Prüfung anmelden“ */}
+              {/* Deine Chats */}
               <div className="mt-4">
                 <h3 className="text-sm font-semibold text-gray-600 mb-2">
                   Deine Chats
                 </h3>
 
                 <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-2">
+                  {/* ⭐ Nur noch dieser Chat bleibt übrig */}
                   <button className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-100 rounded-lg text-sm text-gray-700 transition cursor-pointer">
                     <span className="material-symbols-outlined text-[18px]">
                       chat_bubble

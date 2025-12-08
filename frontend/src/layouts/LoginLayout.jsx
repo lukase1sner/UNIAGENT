@@ -13,7 +13,7 @@ export default function LoginLayout() {
       {/* HEADER */}
       <header className="relative z-20 flex items-center justify-between px-8 py-6 md:px-16">
         <div className="flex items-center gap-3">
-           {/* UNIAGENT Logo Kreis – jetzt weiß */}
+          {/* UNIAGENT Logo Kreis – jetzt weiß */}
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
             🎓
           </div>
@@ -22,14 +22,13 @@ export default function LoginLayout() {
             UNIAGENT
           </span>
         </div>
-        
 
         <nav className="hidden items-center gap-8 text-sm text-black md:flex">
+          <a href="/#startseite" className="hover:text-gray-800 transition">
+            Startseite
+          </a>
           <a href="/#funktionen" className="hover:text-gray-800 transition">
             Funktionen
-          </a>
-          <a href="/#preise" className="hover:text-gray-800 transition">
-            Preise
           </a>
           <a href="/#kontakt" className="hover:text-gray-800 transition">
             Kontakt
@@ -40,7 +39,6 @@ export default function LoginLayout() {
       {/* MAIN CONTENT */}
       <main className="relative z-10 flex flex-1 items-center justify-center px-6 pb-10 pt-4 md:px-16 md:pb-16">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 md:flex-row md:items-stretch md:gap-16">
-          
           {/* LEFT SECTION */}
           <section className="flex-1 text-center md:text-left">
             <h1 className="mb-4 text-3xl font-bold leading-tight text-black md:text-4xl">
@@ -51,21 +49,40 @@ export default function LoginLayout() {
             </h1>
 
             {/* INFOBOX: PROJEKT 24/7-HOCHSCHUL-AGENT */}
-            <div className="mt-6 max-w-xl rounded-3xl bg-white/60 p-5 text-left shadow-sm">
-              <h2 className="mb-2 text-base font-semibold text-black">
-                Projekt: 24/7-Hochschul-Agent
-              </h2>
+            <div className="mt-8 max-w-xl rounded-3xl bg-white/70 p-6 md:p-7 shadow-md border border-white/60 text-left">
 
-              <p className="mb-3 text-xs text-gray-800">
-                UNIAGENT ist ein funktionaler Prototyp eines 24/7-Hochschul-
-                Assistenzsystems mit Frontend, Workflow-Logik und Support-Dashboard.
+              <p className="mb-4 text-sm leading-relaxed text-gray-900">
+                <span className="font-semibold">UNIAGENT</span> ist ein
+                funktionaler Prototyp eines{" "}
+                <span className="font-semibold">
+                  24/7-Hochschul-Assistenzsystems
+                </span>{" "}
+                mit <span className="font-semibold">Frontend</span>,{" "}
+                <span className="font-semibold">Workflow-Logik</span> und{" "}
+                <span className="font-semibold">Support-Dashboard</span>.
               </p>
 
-              <ul className="space-y-1 text-xs text-gray-900">
-                <li>• Mitarbeitende können sich auf komplexe Fälle konzentrieren.</li>
-                <li>• Schnelle, verlässliche Antworten senken die Hemmschwelle bei Studieninteressierten.</li>
-                <li>• Weniger E-Mails und kürzere Reaktionszeiten für individuelle Anliegen.</li>
-                <li>• 24/7-Verfügbarkeit signalisiert Zugänglichkeit und Professionalität.</li>
+              <ul className="space-y-2 text-sm leading-relaxed text-gray-900 list-disc pl-5">
+                <li>
+                  <span className="font-semibold">
+                    Fokus auf komplexe Fälle:
+                  </span>{" "}
+                  Mitarbeitende können sich auf anspruchsvolle Anliegen
+                  konzentrieren.
+                </li>
+                <li>
+                  <span className="font-semibold">Schnelle Antworten:</span>{" "}
+                  Verlässliche Reaktionen senken die Hemmschwelle bei
+                  Studieninteressierten.
+                </li>
+                <li>
+                  <span className="font-semibold">Weniger E-Mails:</span> Kürzere
+                  Reaktionszeiten für individuelle Anliegen.
+                </li>
+                <li>
+                  <span className="font-semibold">24/7-Verfügbarkeit:</span>{" "}
+                  signalisiert Zugänglichkeit und Professionalität.
+                </li>
               </ul>
             </div>
           </section>
@@ -80,7 +97,9 @@ export default function LoginLayout() {
       {/* FOOTER – #E4ECD9 */}
       <footer className="bg-[#E4ECD9] mt-0">
         <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-black text-sm">© {new Date().getFullYear()} UNIAGENT</p>
+          <p className="text-black text-sm">
+            © {new Date().getFullYear()} UNIAGENT
+          </p>
 
           <div className="flex items-center gap-6 text-sm text-black">
             <a href="/#funktionen" className="hover:text-black/70 transition">

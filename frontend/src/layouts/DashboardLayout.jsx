@@ -1,156 +1,303 @@
 // src/layouts/DashboardLayout.jsx
-import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { Menu, Home, HelpCircle, Link as LinkIcon, Bot, User } from "lucide-react";
-import "../styles/Dashboard.css";
+import React, { useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import "../styles/LandingLayout.css";
 
 export default function DashboardLayout() {
-  const [open, setOpen] = useState(true);
-  const iconSize = 22; // ICON-GRÖSSE ÜBERALL GLEICH
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const navigate = useNavigate();
 
-  const location = useLocation();
+  const gradientStyle = {
+    backgroundImage:
+      "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
+  };
 
-  // helper: prüft, ob der Link aktiv ist (prefix-check)
-  const isActive = (path) => {
-    if (!location || !location.pathname) return false;
-    return location.pathname === path || location.pathname.startsWith(path + "/");
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    setMobileMenuOpen(false);
+    navigate("/login");
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
+    <div className="min-h-screen flex flex-col bg-white">
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-sm z-20">
-        <h1 className="text-2xl font-bold tracking-tight">UNIAGENT</h1>
+      {/* HEADER */}
+      <header className="w-full py-4 px-4 lg:py-6 lg:px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
 
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span className="hidden sm:inline">Willkommen, Lukas</span>
-          <button className="px-5 py-2 rounded-full border border-black font-medium hover:bg-black hover:text-white transition">
+        <div
+          className="flex items-center gap-3 select-none cursor-pointer"
+          onClick={() => navigate("/")}
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
+            🎓
+          </div>
+          <span className="text-xl font-semibold tracking-tight">UNIAGENT</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="hidden lg:inline-flex px-5 py-2 rounded-full border border-black font-medium
+                       hover:bg-black hover:text-white transition cursor-pointer"
+          >
             Abmelden
+          </button>
+
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="inline-flex lg:hidden w-10 h-10 items-center justify-center rounded-full
+                       hover:bg-white/70 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[24px]">menu</span>
           </button>
         </div>
       </header>
 
-      <div
-        className="flex flex-1 overflow-hidden"
-        style={{
-          "--sidebar-width": open ? "260px" : "80px",
-        }}
-      >
-        {/* Sidebar */}
-        <aside
-          className={`${open ? "w-[260px]" : "w-[80px]"} transition-all duration-300 bg-gray-300 border-r border-gray-200 flex flex-col z-10`}
-        >
-          <nav className="px-4 py-4 flex-1">
-            <ul className="flex flex-col gap-8">
+      {/* MOBILE MENU */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-white lg:hidden">
 
-              {/* Menü Toggle */}
-              <li>
-                <button
-                  onClick={() => setOpen(!open)}
-                  aria-label="Sidebar umschalten"
-                  className={`
-                    flex items-center p-2 rounded-lg transition
-                    ${open ? "hover:bg-gray-100 w-auto" : "hover:bg-gray-100 w-full justify-center"}
-                  `}
-                >
-                  <Menu size={iconSize} className="text-gray-700" />
-                </button>
-              </li>
+          <div className="flex justify-end px-4 py-4">
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+          </div>
 
-              {/* Dashboard */}
-              <li>
-                <Link
-                  to="/dashboard"
-                  className={`
-                    flex p-2 rounded-lg transition
-                    ${open ? "items-center gap-3" : "justify-center"}
-                    hover:bg-gray-100
-                    ${isActive("/dashboard") ? "bg-gray-100" : ""}
-                  `}
-                >
-                  <Home size={iconSize} className="text-gray-600" />
-                  {open && <span className="text-sm">Dashboard</span>}
-                </Link>
-              </li>
+          <div className="px-6 py-4 flex flex-col gap-4">
 
-              {/* FAQ */}
-              <li>
-                <Link
-                  to="/dashboard/faq"
-                  className={`
-                    flex p-2 rounded-lg transition
-                    ${open ? "items-center gap-3" : "justify-center"}
-                    hover:bg-gray-100
-                    ${isActive("/dashboard/faq") ? "bg-gray-100" : ""}
-                  `}
-                >
-                  <HelpCircle size={iconSize} className="text-sky-600" />
-                  {open && <span className="text-sm">Häufig gestellte Fragen</span>}
-                </Link>
-              </li>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#E4ECD9] hover:bg-[#d5dfc8] cursor-pointer">
+              <span className="material-symbols-outlined text-[22px]">team_dashboard</span>
+              Dashboard
+            </button>
 
-              {/* Links */}
-              <li>
-                <Link
-                  to="/dashboard/links"
-                  className={`
-                    flex p-2 rounded-lg transition
-                    ${open ? "items-center gap-3" : "justify-center"}
-                    hover:bg-gray-100
-                    ${isActive("/dashboard/links") ? "bg-gray-100" : ""}
-                  `}
-                >
-                  <LinkIcon size={iconSize} className="text-teal-600" />
-                  {open && <span className="text-sm">Nützliche Links</span>}
-                </Link>
-              </li>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#E4ECD9] cursor-pointer">
+              <span className="material-symbols-outlined text-[22px]">question_exchange</span>
+              Häufig gestellte Fragen
+            </button>
 
-              {/* Chatbot */}
-              <li>
-                <Link
-                  to="/chat"
-                  className={`
-                    flex p-2 rounded-lg transition
-                    ${open ? "items-center gap-3" : "justify-center"}
-                    hover:bg-gray-100
-                    ${isActive("/chat") ? "bg-gray-100" : ""}
-                  `}
-                >
-                  <Bot size={iconSize} className="text-purple-600" />
-                  {open && <span className="text-sm">Chatbot fragen</span>}
-                </Link>
-              </li>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#E4ECD9] cursor-pointer">
+              <span className="material-symbols-outlined text-[22px]">link</span>
+              Nützliche Links
+            </button>
 
-              {/* Mein Bereich */}
-              <li>
-                <Link
-                  to="/dashboard/me"
-                  className={`
-                    flex p-2 rounded-lg transition
-                    ${open ? "items-center gap-3" : "justify-center"}
-                    hover:bg-gray-100
-                    ${isActive("/dashboard/me") ? "bg-gray-100" : ""}
-                  `}
-                >
-                  <User size={iconSize} className="text-amber-700" />
-                  {open && <span className="text-sm">Mein Bereich</span>}
-                </Link>
-              </li>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#E4ECD9] cursor-pointer">
+              <span className="material-symbols-outlined text-[22px]">chat</span>
+              Chatbot fragen
+            </button>
 
-            </ul>
-          </nav>
-        </aside>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#E4ECD9] cursor-pointer">
+              <span className="material-symbols-outlined text-[22px]">person</span>
+              Mein Bereich
+            </button>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto p-8">
-          <Outlet />
-        </main>
-      </div>
+            <div className="mt-6">
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="w-full px-4 py-3 rounded-full bg-black text-white font-medium
+                           hover:bg-[#111] transition cursor-pointer"
+              >
+                Abmelden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <footer className="bg-white border-t border-gray-200 py-3 text-center text-sm text-black-500">
-        © 2025 UNIAGENT
+      {/* MAIN */}
+      <main className="flex-1 flex flex-col">
+
+        {/* DESKTOP */}
+        <div className="hidden lg:flex flex-1" style={gradientStyle}>
+
+          {/* SIDEBAR */}
+          <aside
+            className={`${collapsed ? "w-20" : "w-72"} bg-white shadow-sm flex flex-col p-4 transition-all duration-300`}
+          >
+
+            {collapsed ? (
+              <div className="flex flex-col items-center h-full">
+
+                {/* MENU ICON */}
+                <div className="relative group">
+                  <button
+                    onClick={() => setCollapsed(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[24px]">menu</span>
+                  </button>
+                  <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
+                                  bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                                  group-hover:opacity-100 transition-opacity">
+                    Menü maximieren
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-4 mt-4">
+
+                  <div className="relative group">
+                    <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#E4ECD9] hover:bg-[#d5dfc8] transition cursor-pointer">
+                      <span className="material-symbols-outlined text-[24px]">team_dashboard</span>
+                    </button>
+                    <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
+                                    bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                                    group-hover:opacity-100 transition-opacity">
+                      Dashboard
+                    </div>
+                  </div>
+
+                  {[
+                    ["question_exchange", "Häufig gestellte Fragen"],
+                    ["link", "Nützliche Links"],
+                    ["chat", "Chatbot fragen"],
+                    ["person", "Mein Bereich"],
+                  ].map(([icon, label]) => (
+                    <div key={icon} className="relative group">
+                      <button className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer">
+                        <span className="material-symbols-outlined text-[24px]">{icon}</span>
+                      </button>
+                      <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
+                                      bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                                      group-hover:opacity-100 transition-opacity">
+                        {label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-auto mb-2">
+                  <div className="w-10 h-10 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-sm cursor-pointer">
+                    LE
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-end mb-6">
+                  <div className="relative group">
+                    <button
+                      onClick={() => setCollapsed(true)}
+                      className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[22px]">menu</span>
+                    </button>
+                    <div className="pointer-events-none absolute right-full mr-2 top-1/2 -translate-y-1/2
+                                    bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                                    group-hover:opacity-100 transition-opacity">
+                      Menü minimieren
+                    </div>
+                  </div>
+                </div>
+
+                <nav className="flex flex-col gap-4 flex-1">
+                  {[
+                    ["team_dashboard", "Dashboard", true],
+                    ["question_exchange", "Häufig gestellte Fragen"],
+                    ["link", "Nützliche Links"],
+                    ["chat", "Chatbot fragen"],
+                    ["person", "Mein Bereich"],
+                  ].map(([icon, label, active]) => (
+                    <button
+                      key={icon}
+                      className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer text-gray-700 ${
+                        active
+                          ? "bg-[#E4ECD9] hover:bg-[#d5dfc8]"
+                          : "hover:bg-[#E4ECD9]"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[22px]">{icon}</span>
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+
+                <div className="mt-6 flex items-center gap-3 cursor-pointer">
+                  <div className="w-12 h-12 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-lg">
+                    LE
+                  </div>
+                  <div className="text-gray-800 font-medium leading-tight">
+                    Lukas Eisner
+                  </div>
+                </div>
+              </>
+            )}
+
+          </aside>
+
+          <section className="flex-1 flex flex-col">
+            <Outlet />
+          </section>
+        </div>
+
+        {/* MOBILE CONTENT */}
+        <div className="flex lg:hidden flex-1" style={gradientStyle}>
+          <section className="flex-1 flex flex-col">
+            <Outlet />
+          </section>
+        </div>
+
+      </main>
+
+      {/* FOOTER */}
+      <footer className="bg-[#E4ECD9] mt-0 py-8">
+
+        {/* MOBILE — linksbündig */}
+        <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
+
+          <a href="#funktionen" className="hover:text-gray-800 transition">Funktionen</a>
+          <a href="#kontakt" className="hover:text-gray-800 transition">Kontakt</a>
+          <a href="/impressum" className="hover:text-gray-800 transition">Impressum</a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition">Datenschutz</a>
+
+          <span className="font-medium pt-2">
+            © {new Date().getFullYear()} UNIAGENT
+          </span>
+        </div>
+
+        {/* DESKTOP — eine Reihe, © am ENDE */}
+        <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
+
+          <a href="#funktionen" className="hover:text-gray-800 transition cursor-pointer">Funktionen</a>
+          <a href="#kontakt" className="hover:text-gray-800 transition cursor-pointer">Kontakt</a>
+          <a href="/impressum" className="hover:text-gray-800 transition cursor-pointer">Impressum</a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition cursor-pointer">Datenschutz</a>
+
+          <span className="font-medium">
+            © {new Date().getFullYear()} UNIAGENT
+          </span>
+        </div>
       </footer>
+
+      {/* LOGOUT MODAL */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-lg max-w-sm w-full mx-4 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Abmelden</h2>
+            <p className="text-sm text-gray-600">Möchtest du dich wirklich abmelden?</p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >
+                Abbrechen
+              </button>
+
+              <button
+                onClick={handleConfirmLogout}
+                className="px-4 py-2 rounded-full bg-red-600 text-white text-sm font-medium hover:bg-red-700 cursor-pointer shadow-sm"
+              >
+                Abmelden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
