@@ -1,5 +1,5 @@
 // src/layouts/DashboardLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import "../styles/LandingLayout.css";
 
@@ -7,6 +7,7 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
   const gradientStyle = {
@@ -14,10 +15,46 @@ export default function DashboardLayout() {
       "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
   };
 
+  // 🔄 User aus LocalStorage laden
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("uniagentUser");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCurrentUser(parsed);
+      }
+    } catch (e) {
+      console.warn("Konnte gespeicherten User nicht lesen:", e);
+    }
+  }, []);
+
+  const getInitials = (user) => {
+    if (!user) return "ME";
+    const f = user.firstName?.trim()?.charAt(0) || "";
+    const l = user.lastName?.trim()?.charAt(0) || "";
+    const initials = (f + l).toUpperCase();
+    return initials || "ME";
+  };
+
+  const getFullName = (user) => {
+    if (!user) return "Benutzer";
+    const parts = [user.firstName, user.lastName].filter(Boolean);
+    return parts.join(" ") || "Benutzer";
+  };
+
   const handleConfirmLogout = () => {
+    // gespeicherten User löschen
+    localStorage.removeItem("uniagentUser");
+
     setShowLogoutModal(false);
     setMobileMenuOpen(false);
     navigate("/login");
+  };
+
+  // kleine Helper-Funktion für Navigation (schließt auch das Mobile-Menü)
+  const goTo = (path) => {
+    setMobileMenuOpen(false);
+    navigate(path);
   };
 
   return (
@@ -70,7 +107,10 @@ export default function DashboardLayout() {
 
           <div className="px-6 py-4 flex flex-col gap-4">
 
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#E4ECD9] hover:bg-[#d5dfc8] cursor-pointer">
+            <button
+              onClick={() => goTo("/dashboard")}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#E4ECD9] hover:bg-[#d5dfc8] cursor-pointer"
+            >
               <span className="material-symbols-outlined text-[22px]">team_dashboard</span>
               Dashboard
             </button>
@@ -85,7 +125,10 @@ export default function DashboardLayout() {
               Nützliche Links
             </button>
 
-            <button className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#E4ECD9] cursor-pointer">
+            <button
+              onClick={() => goTo("/chat-start")}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#E4ECD9] cursor-pointer"
+            >
               <span className="material-symbols-outlined text-[22px]">chat</span>
               Chatbot fragen
             </button>
@@ -140,7 +183,10 @@ export default function DashboardLayout() {
                 <div className="flex flex-col items-center gap-4 mt-4">
 
                   <div className="relative group">
-                    <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#E4ECD9] hover:bg-[#d5dfc8] transition cursor-pointer">
+                    <button
+                      onClick={() => goTo("/dashboard")}
+                      className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#E4ECD9] hover:bg-[#d5dfc8] transition cursor-pointer"
+                    >
                       <span className="material-symbols-outlined text-[24px]">team_dashboard</span>
                     </button>
                     <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
@@ -157,7 +203,14 @@ export default function DashboardLayout() {
                     ["person", "Mein Bereich"],
                   ].map(([icon, label]) => (
                     <div key={icon} className="relative group">
-                      <button className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer">
+                      <button
+                        onClick={() => {
+                          if (label === "Chatbot fragen") {
+                            goTo("/chat-start");
+                          }
+                        }}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer"
+                      >
                         <span className="material-symbols-outlined text-[24px]">{icon}</span>
                       </button>
                       <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
@@ -171,7 +224,7 @@ export default function DashboardLayout() {
 
                 <div className="mt-auto mb-2">
                   <div className="w-10 h-10 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-sm cursor-pointer">
-                    LE
+                    {getInitials(currentUser)}
                   </div>
                 </div>
               </div>
@@ -203,6 +256,10 @@ export default function DashboardLayout() {
                   ].map(([icon, label, active]) => (
                     <button
                       key={icon}
+                      onClick={() => {
+                        if (icon === "team_dashboard") goTo("/dashboard");
+                        if (icon === "chat") goTo("/chat-start");
+                      }}
                       className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer text-gray-700 ${
                         active
                           ? "bg-[#E4ECD9] hover:bg-[#d5dfc8]"
@@ -217,10 +274,10 @@ export default function DashboardLayout() {
 
                 <div className="mt-6 flex items-center gap-3 cursor-pointer">
                   <div className="w-12 h-12 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-lg">
-                    LE
+                    {getInitials(currentUser)}
                   </div>
                   <div className="text-gray-800 font-medium leading-tight">
-                    Lukas Eisner
+                    {getFullName(currentUser)}
                   </div>
                 </div>
               </>

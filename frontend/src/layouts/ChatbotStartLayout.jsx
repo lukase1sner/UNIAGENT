@@ -1,9 +1,37 @@
 // src/layouts/ChatbotStartLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 
 export default function ChatbotStartLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // User aus LocalStorage laden
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("uniagentUser");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCurrentUser(parsed);
+      }
+    } catch (e) {
+      console.warn("Konnte gespeicherten User nicht lesen:", e);
+    }
+  }, []);
+
+  const getInitials = (user) => {
+    if (!user) return "ME";
+    const f = user.firstName?.trim()?.charAt(0) || "";
+    const l = user.lastName?.trim()?.charAt(0) || "";
+    const initials = (f + l).toUpperCase();
+    return initials || "ME";
+  };
+
+  const getFullName = (user) => {
+    if (!user) return "Benutzer";
+    const parts = [user.firstName, user.lastName].filter(Boolean);
+    return parts.join(" ") || "Benutzer";
+  };
 
   return (
     <div
@@ -69,9 +97,9 @@ export default function ChatbotStartLayout() {
             <div className="mb-2">
               <div
                 className="w-10 h-10 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-sm"
-                title="Lukas Eisner"
+                title={getFullName(currentUser)}
               >
-                LE
+                {getInitials(currentUser)}
               </div>
             </div>
           </div>
@@ -139,10 +167,10 @@ export default function ChatbotStartLayout() {
             {/* User */}
             <div className="mt-6 flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-lg">
-                LE
+                {getInitials(currentUser)}
               </div>
               <div className="text-gray-800 font-medium leading-tight">
-                Lukas Eisner
+                {getFullName(currentUser)}
               </div>
             </div>
           </>

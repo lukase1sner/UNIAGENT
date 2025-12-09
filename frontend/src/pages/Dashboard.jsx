@@ -1,10 +1,12 @@
 // src/pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/scrollAnimations.css";
 
 export default function Dashboard() {
   const [view, setView] = useState("grid"); // "grid" | "list"
   const [hoveredCard, setHoveredCard] = useState(null); // für Pfeilfarbe pro Karte
+  const navigate = useNavigate();
 
   // Fade-In Animation beim ersten Laden und bei Wechsel Grid/Liste
   useEffect(() => {
@@ -62,6 +64,14 @@ export default function Dashboard() {
     if (index === 2) return "fade-delay-2";
     if (index === 3) return "fade-delay-3";
     return "";
+  };
+
+  // Navigation für Karten-Pfeil
+  const handleCardClick = (id) => {
+    if (id === "chatbot") {
+      navigate("/chat-start");
+    }
+    // ggf. später weitere Routen ergänzen (faq, links, me)
   };
 
   return (
@@ -155,6 +165,7 @@ export default function Dashboard() {
                   <div className="mt-2 flex justify-end items-center">
                     <button
                       type="button"
+                      onClick={() => handleCardClick(card.id)}
                       className="inline-flex items-center justify-center cursor-pointer"
                     >
                       <span
@@ -208,6 +219,7 @@ export default function Dashboard() {
 
                 <button
                   type="button"
+                  onClick={() => handleCardClick(card.id)}
                   className="inline-flex items-center justify-center cursor-pointer"
                 >
                   <span
@@ -261,6 +273,7 @@ export default function Dashboard() {
               <div className="mt-2 flex justify-end items-center">
                 <button
                   type="button"
+                  onClick={() => handleCardClick(card.id)}
                   className="inline-flex items-center justify-center cursor-pointer"
                 >
                   <span

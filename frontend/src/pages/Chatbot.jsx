@@ -1,39 +1,70 @@
 // src/pages/Chatbot.jsx
-import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";   // ⬅️ neu
+import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function Chatbot() {
-  const [messages, setMessages] = useState([
-    { sender: "bot", text: "Hallo! Wie kann ich dir heute helfen? " },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const location = useLocation();                 // ⬅️ neu
+  const location = useLocation();
 
-  const appendBotFlow = (userText) => {
-    setMessages((prev) => [
-      ...prev,
-      { sender: "user", text: userText },
-      {
-        sender: "bot",
-        text: "Danke für deine Nachricht! Bald verknüpfen wir hier den Workflow.",
-      },
-    ]);
+  const isReadyToSend = input.trim().length > 0;
+
+  // Guard, damit die Initialnachricht nur EINMAL gesendet wird
+  const initialHandledRef = useRef(false);
+
+  // Nachricht an Backend schicken + Bot-Antwort anhängen
+  const sendMessageToBot = async (userText) => {
+    const trimmed = userText.trim();
+    if (!trimmed) return;
+
+    // User-Nachricht sofort im Chat anzeigen
+    setMessages((prev) => [...prev, { sender: "user", text: trimmed }]);
+
+    try {
+      const response = await fetch("http://localhost:8080/api/chatbot/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // muss zu ChatRequest.java passen → Feldname: "message"
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      const data = await response.json();
+
+      const botText =
+        data && data.reply && data.reply.trim()
+          ? data.reply
+          : "Entschuldigung, ich konnte nicht helfen.";
+
+      setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
+    } catch (error) {
+      console.error("Fehler beim Abrufen der Antwort:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text:
+            "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.",
+        },
+      ]);
+    }
   };
 
   const sendMessage = () => {
     if (!input.trim()) return;
-    appendBotFlow(input.trim());
+    const current = input;
     setInput("");
+    sendMessageToBot(current);
   };
 
-  const isReadyToSend = input.trim().length > 0;
-
-  // ⬅️ erste Nachricht von ChatbotStart übernehmen
+  // erste Frage aus ChatbotStart übernehmen und nur EINMAL an den Bot schicken
   useEffect(() => {
     const initial = location.state?.initialUserMessage;
-    if (initial) {
-      appendBotFlow(initial);
-    }
+    if (!initial || initialHandledRef.current) return;
+
+    initialHandledRef.current = true;
+    sendMessageToBot(initial);
   }, [location.state]);
 
   return (

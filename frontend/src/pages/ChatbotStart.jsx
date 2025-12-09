@@ -1,19 +1,42 @@
 // src/pages/ChatbotStart.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function ChatbotStart() {
   const [input, setInput] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
 
   const isReadyToSend = input.trim().length > 0;
+
+  // User aus LocalStorage laden
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("uniagentUser");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCurrentUser(parsed);
+      }
+    } catch (e) {
+      console.warn("Konnte gespeicherten User nicht lesen:", e);
+    }
+  }, []);
+
+  const getFirstName = (user) => {
+    if (!user) return "Benutzer";
+    return user.firstName || user.first_name || "Benutzer";
+  };
 
   const sendMessage = () => {
     if (!isReadyToSend) return;
 
     const trimmed = input.trim();
 
-    // Navigation in den "normalen" Chat mit der ersten User-Nachricht
+    // Input leeren
+    setInput("");
+
+    // Navigation in den Chat mit der ersten User-Nachricht,
+    // die dort direkt an den Bot gesendet wird
     navigate("/chat", {
       state: { initialUserMessage: trimmed },
     });
@@ -34,11 +57,14 @@ export default function ChatbotStart() {
       {/* Begrüßung */}
       <div className="text-center mb-6">
         <p className="text-2xl sm:text-3xl font-semibold">
-          <span className="text-[#98C73C]">Hallo Lukas</span>, womit kann ich dir helfen?
+          <span className="text-[#98C73C]">
+            Hallo {getFirstName(currentUser)}
+          </span>
+          , womit kann ich dir helfen?
         </p>
       </div>
 
-      {/* Eingabebox – Design wie in Chatbot.jsx, nur mittig und breiter */}
+      {/* Eingabebox */}
       <div className="w-full max-w-3xl">
         {/* Gradient Außenrahmen */}
         <div className="relative p-[4px] rounded-2xl bg-gradient-to-b from-[#E4ECD9] to-[#98C73C90]">
