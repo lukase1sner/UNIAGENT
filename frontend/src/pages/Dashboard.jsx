@@ -68,10 +68,23 @@ export default function Dashboard() {
 
   // Navigation für Karten-Pfeil
   const handleCardClick = (id) => {
-    if (id === "chatbot") {
-      navigate("/chat-start");
+    switch (id) {
+      case "chatbot":
+        navigate("/chat-start");
+        break;
+      case "links":
+        navigate("/nuetzliche-links"); // Route zu NützlicheLinks.jsx
+        break;
+      // optional später:
+      // case "faq":
+      //   navigate("/faq");
+      //   break;
+      // case "me":
+      //   navigate("/me");
+      //   break;
+      default:
+        break;
     }
-    // ggf. später weitere Routen ergänzen (faq, links, me)
   };
 
   return (

@@ -18,6 +18,9 @@ import Register from "../pages/Register.jsx";
 import LoginLayout from "../layouts/LoginLayout.jsx";
 import Login from "../pages/Login.jsx";
 
+import NützlicheLinksLayout from "../layouts/NuetzlicheLinksLayout.jsx";
+import NützlicheLinks from "../pages/NuetzlicheLinks.jsx"; 
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -49,6 +52,12 @@ export default function AppRoutes() {
       <Route path="/login" element={<LoginLayout />}>
         <Route index element={<Login />} />
       </Route>
+
+           {/* 📝 Nützliche Links */}
+      <Route path="/nuetzliche-links" element={<NützlicheLinksLayout />}>
+        <Route index element={<NützlicheLinks />} />
+      </Route>
+    
 
     </Routes>
   );
