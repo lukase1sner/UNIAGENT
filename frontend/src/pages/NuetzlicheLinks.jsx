@@ -93,7 +93,7 @@ export default function NützlicheLinks() {
             >
               <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
                 <span className="material-symbols-outlined text-white text-[22px]">
-                  link
+                  link 
                 </span>
               </div>
             </div>
