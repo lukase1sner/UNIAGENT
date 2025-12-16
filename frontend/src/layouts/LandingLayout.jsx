@@ -13,8 +13,10 @@ export default function LandingLayout({ children }) {
       <header className="w-full py-6 px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
 
         {/* UNIAGENT Logo – wie Register & Chatbot */}
-        <div className="flex items-center gap-3 select-none cursor-pointer"
-             onClick={() => navigate("/")}>
+        <div
+          className="flex items-center gap-3 select-none cursor-pointer"
+          onClick={() => navigate("/")}
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
             🎓
           </div>
@@ -48,22 +50,31 @@ export default function LandingLayout({ children }) {
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#E4ECD9] mt-0">
-        <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row
-                        items-center justify-between gap-6">
+      {/* FOOTER – identisch zum Dashboard-Footer */}
+      <footer className="bg-[#E4ECD9] mt-0 py-8">
 
-          <p className="text-black text-sm">
+        {/* MOBILE — linksbündig */}
+        <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
+          <a href="#funktionen" className="hover:text-gray-800 transition">Funktionen</a>
+          <a href="#kontakt" className="hover:text-gray-800 transition">Kontakt</a>
+          <a href="/impressum" className="hover:text-gray-800 transition">Impressum</a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition">Datenschutz</a>
+
+          <span className="font-medium pt-2">
             © {new Date().getFullYear()} UNIAGENT
-          </p>
+          </span>
+        </div>
 
-          <div className="flex items-center gap-6 text-sm text-black">
-            <a href="#funktionen" className="hover:text-gray-800 transition">Funktionen</a>
-            <a href="#kontakt" className="hover:text-gray-800 transition">Kontakt</a>
-            <a href="/impressum" className="hover:text-gray-800 transition">Impressum</a>
-            <a href="/datenschutz" className="hover:text-gray-800 transition">Datenschutz</a>
-          </div>
+        {/* DESKTOP — eine Reihe, © am ENDE */}
+        <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
+          <a href="#funktionen" className="hover:text-gray-800 transition cursor-pointer">Funktionen</a>
+          <a href="#kontakt" className="hover:text-gray-800 transition cursor-pointer">Kontakt</a>
+          <a href="/impressum" className="hover:text-gray-800 transition cursor-pointer">Impressum</a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition cursor-pointer">Datenschutz</a>
 
+          <span className="font-medium">
+            © {new Date().getFullYear()} UNIAGENT
+          </span>
         </div>
       </footer>
 

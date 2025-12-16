@@ -5,54 +5,81 @@ import { useLocation } from "react-router-dom";
 export default function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const location = useLocation();
 
-  const isReadyToSend = input.trim().length > 0;
+  const isReadyToSend = input.trim().length > 0 && !isLoading;
 
   // Guard, damit die Initialnachricht nur EINMAL gesendet wird
   const initialHandledRef = useRef(false);
+  
+  // Session ID für n8n Memory - bleibt während der gesamten Chat-Session gleich
+  const sessionIdRef = useRef('session-' + Date.now());
 
-  // Nachricht an Backend schicken + Bot-Antwort anhängen
+  // ========================================
+  // WICHTIG: Hier deine n8n Webhook URL eintragen!
+  // ========================================
+  const N8N_WEBHOOK_URL = "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
+
+  // Nachricht an n8n Backend schicken + Bot-Antwort anhängen
   const sendMessageToBot = async (userText) => {
     const trimmed = userText.trim();
     if (!trimmed) return;
 
     // User-Nachricht sofort im Chat anzeigen
     setMessages((prev) => [...prev, { sender: "user", text: trimmed }]);
+    setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/chatbot/chat", {
+      const response = await fetch(N8N_WEBHOOK_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        // muss zu ChatRequest.java passen → Feldname: "message"
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({ 
+          chatInput: trimmed,           // n8n erwartet "chatInput"
+          sessionId: sessionIdRef.current  // Für Memory/Kontext
+        }),
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      const botText =
-        data && data.reply && data.reply.trim()
-          ? data.reply
-          : "Entschuldigung, ich konnte nicht helfen.";
+      const data = await response.json();
+      
+      // n8n Response parsen - kann verschiedene Formate haben
+      let botText = "Entschuldigung, ich konnte nicht helfen.";
+      
+      if (data && data.output) {
+        // Format: { output: "..." }
+        botText = data.output;
+      } else if (Array.isArray(data) && data[0] && data[0].output) {
+        // Format: [{ output: "..." }]
+        botText = data[0].output;
+      } else if (typeof data === 'string') {
+        // Direkter String
+        botText = data;
+      }
 
       setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
+      
     } catch (error) {
       console.error("Fehler beim Abrufen der Antwort:", error);
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text:
-            "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.",
+          text: "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.",
         },
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const sendMessage = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
     const current = input;
     setInput("");
     sendMessageToBot(current);
@@ -89,6 +116,19 @@ export default function Chatbot() {
             </div>
           </div>
         ))}
+        
+        {/* Loading Indicator */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="px-4 py-3 rounded-xl bg-gray-200 text-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Eingabebereich */}
@@ -118,6 +158,7 @@ export default function Chatbot() {
               onKeyDown={(e) =>
                 e.key === "Enter" && isReadyToSend && sendMessage()
               }
+              disabled={isLoading}
             />
 
             {/* Sende-Button rechts */}

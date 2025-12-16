@@ -1,3 +1,4 @@
+// src/layouts/RegisterLayout.jsx
 import { Outlet } from "react-router-dom";
 import "../styles/Register.css";
 
@@ -93,27 +94,46 @@ export default function RegisterLayout() {
         </div>
       </main>
 
-      {/* FOOTER – #E4ECD9 */}
-      <footer className="bg-[#E4ECD9] mt-0">
-        <div className="max-w-7xl mx-auto px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-black text-sm">
-            © {new Date().getFullYear()} UNIAGENT
-          </p>
+      {/* FOOTER – wie Login/Dashboard (Mobile + Desktop) */}
+      <footer className="bg-[#E4ECD9] mt-0 py-8">
+        {/* MOBILE — linksbündig */}
+        <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
+          <a href="/#funktionen" className="hover:text-gray-800 transition">
+            Funktionen
+          </a>
+          <a href="/#kontakt" className="hover:text-gray-800 transition">
+            Kontakt
+          </a>
+          <a href="/impressum" className="hover:text-gray-800 transition">
+            Impressum
+          </a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition">
+            Datenschutz
+          </a>
 
-          <div className="flex items-center gap-6 text-sm text-black">
-            <a href="/#funktionen" className="hover:text-black/70 transition">
-              Funktionen
-            </a>
-            <a href="/#kontakt" className="hover:text-black/70 transition">
-              Kontakt
-            </a>
-            <a href="/impressum" className="hover:text-black/70 transition">
-              Impressum
-            </a>
-            <a href="/datenschutz" className="hover:text-black/70 transition">
-              Datenschutz
-            </a>
-          </div>
+          <span className="font-medium pt-2">
+            © {new Date().getFullYear()} UNIAGENT
+          </span>
+        </div>
+
+        {/* DESKTOP — eine Reihe, © am ENDE */}
+        <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
+          <a href="/#funktionen" className="hover:text-gray-800 transition cursor-pointer">
+            Funktionen
+          </a>
+          <a href="/#kontakt" className="hover:text-gray-800 transition cursor-pointer">
+            Kontakt
+          </a>
+          <a href="/impressum" className="hover:text-gray-800 transition cursor-pointer">
+            Impressum
+          </a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition cursor-pointer">
+            Datenschutz
+          </a>
+
+          <span className="font-medium">
+            © {new Date().getFullYear()} UNIAGENT
+          </span>
         </div>
       </footer>
     </div>
