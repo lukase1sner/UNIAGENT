@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/scrollAnimations.css";
@@ -73,15 +72,11 @@ export default function Dashboard() {
         navigate("/chat-start");
         break;
       case "links":
-        navigate("/nuetzliche-links"); // Route zu NützlicheLinks.jsx
+        navigate("/nuetzliche-links");
         break;
-      // optional später:
-      // case "faq":
-      //   navigate("/faq");
-      //   break;
-      // case "me":
-      //   navigate("/me");
-      //   break;
+      case "me":
+        navigate("/mein-bereich"); // ✅ NEU
+        break;
       default:
         break;
     }

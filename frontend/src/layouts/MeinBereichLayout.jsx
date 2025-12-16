@@ -1,9 +1,9 @@
-// src/layouts/DashboardLayout.jsx
+// src/layouts/MeinBereichLayout.jsx
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import "../styles/LandingLayout.css";
 
-export default function DashboardLayout() {
+export default function MeinBereichLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -16,14 +16,10 @@ export default function DashboardLayout() {
       "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
   };
 
-  // 🔄 User aus LocalStorage laden
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setCurrentUser(parsed);
-      }
+      if (stored) setCurrentUser(JSON.parse(stored));
     } catch (e) {
       console.warn("Konnte gespeicherten User nicht lesen:", e);
     }
@@ -33,8 +29,7 @@ export default function DashboardLayout() {
     if (!user) return "ME";
     const f = user.firstName?.trim()?.charAt(0) || "";
     const l = user.lastName?.trim()?.charAt(0) || "";
-    const initials = (f + l).toUpperCase();
-    return initials || "ME";
+    return (f + l).toUpperCase() || "ME";
   };
 
   const getFullName = (user) => {
@@ -50,7 +45,6 @@ export default function DashboardLayout() {
     navigate("/login");
   };
 
-  // kleine Helper-Funktion für Navigation (schließt auch das Mobile-Menü)
   const goTo = (path) => {
     setMobileMenuOpen(false);
     navigate(path);
@@ -59,7 +53,7 @@ export default function DashboardLayout() {
   // ✅ aktiver Menüpunkt per Route
   const isActive = (path) => location.pathname === path;
 
-  // Mobile Menü-Items (gleiches "Design-System" wie Sidebar)
+  // Mobile Menü-Items (gleiches System wie DashboardLayout)
   const mobileItems = [
     { icon: "team_dashboard", label: "Dashboard", path: "/dashboard" },
     { icon: "question_exchange", label: "Häufig gestellte Fragen", path: null },
@@ -101,7 +95,7 @@ export default function DashboardLayout() {
         </div>
       </header>
 
-      {/* MOBILE MENU (Fullscreen + ohne Avatar/Name) */}
+      {/* MOBILE MENU (Fullscreen + neues Design + ohne Avatar/Name) */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden bg-white/55 backdrop-blur-xl">
           {/* Top bar */}
@@ -172,11 +166,8 @@ export default function DashboardLayout() {
       {/* MAIN */}
       <main className="flex-1 flex flex-col">
         {/* DESKTOP */}
-        <div
-          className="hidden lg:flex flex-1 relative isolate"
-          style={gradientStyle}
-        >
-          {/* SIDEBAR (GLASS) */}
+        <div className="hidden lg:flex flex-1 relative isolate" style={gradientStyle}>
+          {/* SIDEBAR (GLASS + Tooltips vorn) */}
           <aside
             className={`${
               collapsed ? "w-20" : "w-72"
@@ -232,20 +223,11 @@ export default function DashboardLayout() {
                   </div>
 
                   {[
-                    ["question_exchange", "Häufig gestellte Fragen"],
-                    ["link", "Nützliche Links"],
-                    ["chat", "Chatbot fragen"],
-                    ["person", "Mein Bereich"],
-                  ].map(([icon, label]) => {
-                    const path =
-                      label === "Chatbot fragen"
-                        ? "/chat-start"
-                        : label === "Mein Bereich"
-                        ? "/mein-bereich"
-                        : label === "Nützliche Links"
-                        ? "/nuetzliche-links"
-                        : null;
-
+                    ["question_exchange", "Häufig gestellte Fragen", null],
+                    ["link", "Nützliche Links", "/nuetzliche-links"],
+                    ["chat", "Chatbot fragen", "/chat-start"],
+                    ["person", "Mein Bereich", "/mein-bereich"],
+                  ].map(([icon, label, path]) => {
                     const active = path ? isActive(path) : false;
 
                     return (
@@ -310,32 +292,33 @@ export default function DashboardLayout() {
 
                 <nav className="flex flex-col gap-4 flex-1">
                   {[
-                    ["team_dashboard", "Dashboard", isActive("/dashboard")],
-                    ["question_exchange", "Häufig gestellte Fragen", false],
-                    ["link", "Nützliche Links", isActive("/nuetzliche-links")],
-                    ["chat", "Chatbot fragen", isActive("/chat-start")],
-                    ["person", "Mein Bereich", isActive("/mein-bereich")],
-                  ].map(([icon, label, active]) => (
-                    <button
-                      key={icon}
-                      onClick={() => {
-                        if (icon === "team_dashboard") goTo("/dashboard");
-                        if (icon === "chat") goTo("/chat-start");
-                        if (icon === "link") goTo("/nuetzliche-links");
-                        if (icon === "person") goTo("/mein-bereich");
-                      }}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer font-medium ${
-                        active
-                          ? "bg-[#E4ECD9] hover:bg-[#d6dfc9] text-gray-900"
-                          : "text-gray-700 hover:bg-[#d6dfc9]"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[22px]">
-                        {icon}
-                      </span>
-                      {label}
-                    </button>
-                  ))}
+                    ["team_dashboard", "Dashboard", "/dashboard"],
+                    ["question_exchange", "Häufig gestellte Fragen", null],
+                    ["link", "Nützliche Links", "/nuetzliche-links"],
+                    ["chat", "Chatbot fragen", "/chat-start"],
+                    ["person", "Mein Bereich", "/mein-bereich"],
+                  ].map(([icon, label, path]) => {
+                    const active = path ? isActive(path) : false;
+
+                    return (
+                      <button
+                        key={icon}
+                        onClick={() => {
+                          if (path) goTo(path);
+                        }}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer font-medium ${
+                          active
+                            ? "bg-[#E4ECD9] hover:bg-[#d6dfc9] text-gray-900"
+                            : "text-gray-700 hover:bg-[#d6dfc9]"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[22px]">
+                          {icon}
+                        </span>
+                        {label}
+                      </button>
+                    );
+                  })}
                 </nav>
 
                 <div className="mt-6 flex items-center gap-3 cursor-pointer">
@@ -365,7 +348,6 @@ export default function DashboardLayout() {
 
       {/* FOOTER */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
-        {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
           <a href="#funktionen" className="hover:text-gray-800 transition">
             Funktionen
@@ -379,13 +361,11 @@ export default function DashboardLayout() {
           <a href="/datenschutz" className="hover:text-gray-800 transition">
             Datenschutz
           </a>
-
           <span className="font-medium pt-2">
             © {new Date().getFullYear()} UNIAGENT
           </span>
         </div>
 
-        {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
           <a
             href="#funktionen"
@@ -411,7 +391,6 @@ export default function DashboardLayout() {
           >
             Datenschutz
           </a>
-
           <span className="font-medium">
             © {new Date().getFullYear()} UNIAGENT
           </span>

@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/service/AuthService.java
 package com.uniagent.backend.service;
 
 import com.uniagent.backend.dto.LoginRequest;
@@ -32,13 +31,12 @@ public class AuthService {
     // -----------------------------------------------------
     public RegisterResponse register(RegisterRequest request) {
         try {
-            // 1) User in Supabase Auth anlegen
             SupabaseSignUpResponse signUpResponse = supabaseAuthClient.signUp(
                     request.getEmail(),
                     request.getPassword(),
                     request.getFirstName(),
                     request.getLastName(),
-                    "Anwender"              // feste Rolle für dich
+                    "Anwender"
             );
 
             if (signUpResponse == null || signUpResponse.getId() == null) {
@@ -46,10 +44,9 @@ public class AuthService {
                 return new RegisterResponse(false, "Registrierung bei Supabase fehlgeschlagen.");
             }
 
-            // 2) User in eigener Tabelle speichern
             try {
                 supabaseDatabaseClient.insertUser(
-                        signUpResponse.getId(),      // auth_user_id (String, wird in SQL zu UUID gecastet)
+                        signUpResponse.getId(),
                         request.getFirstName(),
                         request.getLastName(),
                         "Anwender"
@@ -74,7 +71,6 @@ public class AuthService {
     // -----------------------------------------------------
     public LoginResponse login(LoginRequest request) {
         try {
-            // 1) Login bei Supabase (Email + Passwort)
             Map<String, Object> loginResult =
                     supabaseAuthClient.login(request.getEmail(), request.getPassword());
 
@@ -96,7 +92,6 @@ public class AuthService {
 
             String authUserId = (String) user.get("id");
 
-            // 2) Benutzer aus eigener users-Tabelle holen
             Optional<SupabaseDatabaseClient.UserRecord> userOpt =
                     supabaseDatabaseClient.findByAuthUserId(authUserId);
 
@@ -106,17 +101,21 @@ public class AuthService {
             }
 
             SupabaseDatabaseClient.UserRecord userRecord = userOpt.get();
-            log.info("Login für {} {} (Rolle: {})",
-                    userRecord.firstName(), userRecord.lastName(), userRecord.role());
 
-            // 3) Erfolgsantwort – Token + Profil-Daten (Name + Email)
+            log.info("Login für {} {} (Rolle: {})",
+                    userRecord.firstName(),
+                    userRecord.lastName(),
+                    userRecord.role());
+
+            // 👇 HIER ist die entscheidende Stelle
             return new LoginResponse(
                     true,
                     "Login erfolgreich.",
                     accessToken,
                     userRecord.firstName(),
                     userRecord.lastName(),
-                    request.getEmail()
+                    request.getEmail(),
+                    userRecord.role()
             );
 
         } catch (Exception e) {

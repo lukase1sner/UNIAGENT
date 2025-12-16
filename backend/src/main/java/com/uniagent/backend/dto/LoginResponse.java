@@ -9,6 +9,7 @@ public class LoginResponse {
     private String firstName;
     private String lastName;
     private String email;
+    private String role; // 👈 NEU
 
     public LoginResponse() {
     }
@@ -30,7 +31,8 @@ public class LoginResponse {
             String token,
             String firstName,
             String lastName,
-            String email
+            String email,
+            String role
     ) {
         this.success = success;
         this.message = message;
@@ -38,6 +40,7 @@ public class LoginResponse {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+        this.role = role;
     }
 
     // ---------- GETTER & SETTER ----------
@@ -88,5 +91,13 @@ public class LoginResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

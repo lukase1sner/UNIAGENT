@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -55,7 +54,6 @@ export default function Login() {
       return "Dein Passwort muss mindestens eine Zahl enthalten.";
     }
 
-    // mind. ein Sonderzeichen
     if (!/[^A-Za-z0-9]/.test(value)) {
       return "Dein Passwort muss mindestens ein Sonderzeichen enthalten.";
     }
@@ -107,20 +105,14 @@ export default function Login() {
     setServerError("");
     setServerSuccess("");
 
-    const isValid = validateForm();
-    if (!isValid) return;
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
       const response = await fetch("http://localhost:8080/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -131,44 +123,24 @@ export default function Login() {
           data.message || "Anmeldung fehlgeschlagen. Bitte prüfe deine Eingaben."
         );
       } else {
-        // 🔐 User-Daten aus Response möglichst robust extrahieren
-        const firstNameFromApi =
-          data.firstName ||
-          data.first_name ||
-          data.user?.firstName ||
-          data.user?.first_name ||
-          data.user_metadata?.first_name ||
-          data.user?.user_metadata?.first_name ||
-          "";
-
-        const lastNameFromApi =
-          data.lastName ||
-          data.last_name ||
-          data.user?.lastName ||
-          data.user?.last_name ||
-          data.user_metadata?.last_name ||
-          data.user?.user_metadata?.last_name ||
-          "";
-
-        const emailFromApi =
-          data.email ||
-          data.user?.email ||
-          data.user_metadata?.email ||
-          data.user?.user_metadata?.email ||
-          email;
-
         const userForStorage = {
-          firstName: firstNameFromApi,
-          lastName: lastNameFromApi,
-          email: emailFromApi,
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          email: data.email || email,
+          role: data.role,        // ⭐ NEU
+          token: data.token,      // ⭐ NEU
         };
 
-        // immer speichern – notfalls nur mit Email
         localStorage.setItem("uniagentUser", JSON.stringify(userForStorage));
 
         setServerSuccess("Anmeldung erfolgreich. Du wirst weitergeleitet …");
+
         setTimeout(() => {
-          navigate("/dashboard");
+          if (data.role === "Support") {
+            navigate("/support");   // ⭐ NEU
+          } else {
+            navigate("/dashboard");
+          }
         }, 700);
       }
     } catch (err) {
@@ -187,7 +159,6 @@ export default function Login() {
         Anmelden
       </h1>
 
-      {/* Server-Meldungen */}
       {serverError && (
         <div className="mb-4 rounded-full bg-red-100 px-4 py-2 text-center text-xs font-medium text-red-700">
           {serverError}
@@ -254,7 +225,6 @@ export default function Login() {
               placeholder="Passwort *"
             />
 
-            {/* Toggle Password Visibility */}
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
@@ -270,7 +240,6 @@ export default function Login() {
           )}
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting}
@@ -284,14 +253,12 @@ export default function Login() {
         </button>
       </form>
 
-      {/* Divider */}
       <div className="my-6 flex items-center gap-4 text-xs text-black">
         <div className="h-px flex-1 bg-black" />
-        <span className="shrink-0">ODER</span>
+        <span>ODER</span>
         <div className="h-px flex-1 bg-black" />
       </div>
 
-      {/* Register link */}
       <p className="text-center text-sm text-black">
         Du hast noch kein Konto?{" "}
         <a href="/register" className="font-bold text-black hover:underline">
