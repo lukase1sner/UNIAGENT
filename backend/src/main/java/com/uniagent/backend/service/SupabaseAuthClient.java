@@ -23,12 +23,12 @@ public class SupabaseAuthClient {
     public SupabaseAuthClient(SupabaseConfig config) {
         this.supabaseUrl = config.getProjectUrl();
         this.anonKey = config.getAnonKey();
-        this.serviceRoleKey = config.getServiceRoleKey();   // 👈 wichtig für Admin-Calls
+        this.serviceRoleKey = config.getServiceRoleKey(); // wichtig für Admin-Calls
     }
 
     // --------------------------------------------------------------
     // SIGNUP (Registrierung) – erstellt User per Admin-Endpoint
-    //   → email_confirm = true  => kein "Waiting for verification"
+    // → email_confirm = true => kein "Waiting for verification"
     // --------------------------------------------------------------
     public SupabaseSignUpResponse signUp(
             String email,
@@ -38,13 +38,12 @@ public class SupabaseAuthClient {
             String role
     ) {
         try {
-            // Admin-Endpoint
             String url = supabaseUrl + "/auth/v1/admin/users";
 
             Map<String, Object> body = Map.of(
                     "email", email,
                     "password", password,
-                    "email_confirm", true,         // 👈 direkt bestätigen
+                    "email_confirm", true,
                     "user_metadata", Map.of(
                             "first_name", firstName,
                             "last_name", lastName,
@@ -54,7 +53,6 @@ public class SupabaseAuthClient {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            // Admin-Endpoint braucht SERVICE_ROLE als apikey + Bearer
             headers.set("apikey", serviceRoleKey);
             headers.set("Authorization", "Bearer " + serviceRoleKey);
 
@@ -88,7 +86,7 @@ public class SupabaseAuthClient {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("apikey", anonKey);   // hier reicht der anon-Key
+            headers.set("apikey", anonKey);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -107,6 +105,40 @@ public class SupabaseAuthClient {
         } catch (Exception e) {
             log.error("Technischer Fehler bei Supabase Login", e);
             return null;
+        }
+    }
+
+    // --------------------------------------------------------------
+    // PASSWORT-UPDATE (Admin-Endpoint)
+    // --------------------------------------------------------------
+    public boolean updatePasswordAdmin(String authUserId, String newPassword) {
+        try {
+            String url = supabaseUrl + "/auth/v1/admin/users/" + authUserId;
+
+            Map<String, Object> body = Map.of(
+                    "password", newPassword
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("apikey", serviceRoleKey);
+            headers.set("Authorization", "Bearer " + serviceRoleKey);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    request,
+                    Map.class
+            );
+
+            log.info("Supabase Admin Update Password Status: {}", response.getStatusCode());
+            return response.getStatusCode().is2xxSuccessful();
+
+        } catch (Exception e) {
+            log.error("Fehler bei Supabase Admin Passwort-Update", e);
+            return false;
         }
     }
 }

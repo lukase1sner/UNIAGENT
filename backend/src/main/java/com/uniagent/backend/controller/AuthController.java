@@ -5,6 +5,8 @@ import com.uniagent.backend.dto.LoginRequest;
 import com.uniagent.backend.dto.LoginResponse;
 import com.uniagent.backend.dto.RegisterRequest;
 import com.uniagent.backend.dto.RegisterResponse;
+import com.uniagent.backend.dto.ChangePasswordRequest;
+import com.uniagent.backend.dto.ChangePasswordResponse;
 import com.uniagent.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -43,4 +45,20 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }
+
+    @PostMapping("/change-password")
+public ResponseEntity<ChangePasswordResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    ChangePasswordResponse response = authService.changePassword(request);
+
+    if (response.isSuccess()) {
+        return ResponseEntity.ok(response);
+    } else {
+        // falsches altes Passwort → 401 ist sinnvoll
+        if ("Aktuelles Passwort ist falsch.".equals(response.getMessage())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+}
+
 }

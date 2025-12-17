@@ -73,7 +73,7 @@ export default function NützlicheLinks() {
           Nützliche Links
         </h1>
         <p className="mt-2 text-sm md:text-base text-gray-500">
-          Schneller Zugriff auf deine wichtigsten Links.
+          Schneller Zugriff auf wichtige Seiten und Portale.
         </p>
       </div>
 
