@@ -1,11 +1,12 @@
+// backend/src/main/java/com/uniagent/backend/service/AuthService.java
 package com.uniagent.backend.service;
 
+import com.uniagent.backend.dto.ChangePasswordRequest;
+import com.uniagent.backend.dto.ChangePasswordResponse;
 import com.uniagent.backend.dto.LoginRequest;
 import com.uniagent.backend.dto.LoginResponse;
 import com.uniagent.backend.dto.RegisterRequest;
 import com.uniagent.backend.dto.RegisterResponse;
-import com.uniagent.backend.dto.ChangePasswordRequest;
-import com.uniagent.backend.dto.ChangePasswordResponse;
 import com.uniagent.backend.model.SupabaseSignUpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ public class AuthService {
     // -----------------------------------------------------
     public RegisterResponse register(RegisterRequest request) {
         try {
+            // 1) User in Supabase Auth anlegen
             SupabaseSignUpResponse signUpResponse = supabaseAuthClient.signUp(
                     request.getEmail(),
                     request.getPassword(),
@@ -48,6 +50,7 @@ public class AuthService {
                 return new RegisterResponse(false, "Registrierung bei Supabase fehlgeschlagen.");
             }
 
+            // 2) User in eigener Tabelle speichern
             try {
                 supabaseDatabaseClient.insertUser(
                         signUpResponse.getId(),
@@ -76,6 +79,7 @@ public class AuthService {
     // -----------------------------------------------------
     public LoginResponse login(LoginRequest request) {
         try {
+            // 1) Login bei Supabase (Email + Passwort)
             Map<String, Object> loginResult =
                     supabaseAuthClient.login(request.getEmail(), request.getPassword());
 
@@ -97,6 +101,7 @@ public class AuthService {
 
             String authUserId = (String) user.get("id");
 
+            // 2) Benutzer aus eigener users-Tabelle holen
             Optional<SupabaseDatabaseClient.UserRecord> userOpt =
                     supabaseDatabaseClient.findByAuthUserId(authUserId);
 
@@ -107,14 +112,6 @@ public class AuthService {
 
             SupabaseDatabaseClient.UserRecord userRecord = userOpt.get();
 
-<<<<<<< HEAD
-            log.info("Login für {} {} (Rolle: {})",
-                    userRecord.firstName(),
-                    userRecord.lastName(),
-                    userRecord.role());
-
-            // 👇 HIER ist die entscheidende Stelle
-=======
             log.info(
                     "Login für {} {} (Rolle: {})",
                     userRecord.firstName(),
@@ -122,7 +119,7 @@ public class AuthService {
                     userRecord.role()
             );
 
->>>>>>> 01c5205 (Passwort ändern)
+            // 3) Erfolgsantwort – Token + Profil-Daten
             return new LoginResponse(
                     true,
                     "Login erfolgreich.",
@@ -149,54 +146,35 @@ public class AuthService {
         try {
             // 1) Altes Passwort prüfen (Re-Login)
             Map<String, Object> loginResult =
-                    supabaseAuthClient.login(
-                            request.getEmail(),
-                            request.getOldPassword()
-                    );
+                    supabaseAuthClient.login(request.getEmail(), request.getOldPassword());
 
             if (loginResult == null || !loginResult.containsKey("access_token")) {
-                return new ChangePasswordResponse(
-                        false,
-                        "Aktuelles Passwort ist falsch."
-                );
+                return new ChangePasswordResponse(false, "Aktuelles Passwort ist falsch.");
             }
 
             @SuppressWarnings("unchecked")
             Map<String, Object> user = (Map<String, Object>) loginResult.get("user");
             if (user == null || user.get("id") == null) {
-                return new ChangePasswordResponse(
-                        false,
-                        "Benutzer konnte nicht ermittelt werden."
-                );
+                return new ChangePasswordResponse(false, "Benutzer konnte nicht ermittelt werden.");
             }
 
             String authUserId = (String) user.get("id");
 
             // 2) Neues Passwort setzen (Supabase Admin)
-            boolean updated =
-                    supabaseAuthClient.updatePasswordAdmin(
-                            authUserId,
-                            request.getNewPassword()
-                    );
+            boolean updated = supabaseAuthClient.updatePasswordAdmin(
+                    authUserId,
+                    request.getNewPassword()
+            );
 
             if (!updated) {
-                return new ChangePasswordResponse(
-                        false,
-                        "Passwort konnte nicht geändert werden."
-                );
+                return new ChangePasswordResponse(false, "Passwort konnte nicht geändert werden.");
             }
 
-            return new ChangePasswordResponse(
-                    true,
-                    "Passwort erfolgreich geändert."
-            );
+            return new ChangePasswordResponse(true, "Passwort erfolgreich geändert.");
 
         } catch (Exception e) {
             log.error("Technischer Fehler beim Passwort ändern", e);
-            return new ChangePasswordResponse(
-                    false,
-                    "Technischer Fehler beim Passwort ändern."
-            );
+            return new ChangePasswordResponse(false, "Technischer Fehler beim Passwort ändern.");
         }
     }
 }

@@ -83,16 +83,14 @@ export default function AppRoutes() {
       <Route path="/nuetzliche-links" element={<NützlicheLinksLayout />}>
         <Route index element={<NützlicheLinks />} />
       </Route>
-<<<<<<< HEAD
-=======
 
-     <Route path="/password-aendern" element={<PasswordaendernLayout />}>
+    {/* 🔐 Passwort ändern */}
+<Route path="/password-aendern" element={<PasswordaendernLayout />}>
   <Route index element={<Passwordaendern />} />
 </Route>
 
     
 
->>>>>>> 01c5205 (Passwort ändern)
     </Routes>
   );
 }
