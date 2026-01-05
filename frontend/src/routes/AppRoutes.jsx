@@ -35,6 +35,10 @@ import NützlicheLinks from "../pages/NuetzlicheLinks.jsx";
 import PasswordaendernLayout from "../layouts/PasswordaendernLayout.jsx";
 import Passwordaendern from "../pages/Passwordaendern.jsx";
 
+import HaufigLayout from "../layouts/HaufigLayout.jsx";
+import Haufig from "../pages/Haufig.jsx";
+
+
 
 
 
@@ -88,6 +92,11 @@ export default function AppRoutes() {
 <Route path="/password-aendern" element={<PasswordaendernLayout />}>
   <Route index element={<Passwordaendern />} />
 </Route>
+
+      {/* ❓ Häufig gestellte Fragen */}
+      <Route path="/haufig" element={<HaufigLayout />}>
+        <Route index element={<Haufig />} />
+      </Route>
 
     
 

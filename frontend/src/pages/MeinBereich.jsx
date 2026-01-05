@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function MeinBereich() {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
 
   const [firstName, setFirstName] = useState("");
@@ -11,11 +14,9 @@ export default function MeinBereich() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
-  // ✅ Click-Animation (Buttons werden kurz schwarz)
   const [savePressed, setSavePressed] = useState(false);
   const [resetPressed, setResetPressed] = useState(false);
 
-  // 🔄 User laden
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
@@ -31,7 +32,6 @@ export default function MeinBereich() {
     }
   }, []);
 
-  // ---------- Validierung ----------
   const validate = () => {
     const newErrors = {};
     if (!firstName.trim()) newErrors.firstName = "Vorname darf nicht leer sein.";
@@ -46,7 +46,6 @@ export default function MeinBereich() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // 🔁 Änderungen?
   const isDirty = useMemo(() => {
     if (!user) return false;
     return (
@@ -56,7 +55,6 @@ export default function MeinBereich() {
     );
   }, [user, firstName, lastName, email]);
 
-  // 💾 Speichern (nur LocalStorage)
   const handleSave = async () => {
     setSaveMsg("");
     if (!validate()) return;
@@ -74,8 +72,10 @@ export default function MeinBereich() {
     }
   };
 
-  const handleResetPassword = () => {
-    alert("Passwort-Zurücksetzen kommt später (Backend/Supabase).");
+  // ✅ Navigation sofort auf PointerDown (stabiler als onClick bei deinem Layout)
+  const goToPassword = () => {
+    console.log("NAVIGATE -> /password-aendern");
+    navigate("/password-aendern");
   };
 
   const InputField = ({ label, value, onChange, error, type = "text" }) => (
@@ -104,9 +104,14 @@ export default function MeinBereich() {
     </div>
   );
 
-  const Card = ({ title, subtitle, children }) => {
+  const Card = ({ title, subtitle, children, className = "" }) => {
     return (
-      <div className="rounded-3xl border border-white/40 bg-white/35 backdrop-blur-xl shadow-md overflow-hidden">
+      <div
+        className={
+          "rounded-3xl border border-white/40 bg-white/35 backdrop-blur-xl shadow-md overflow-hidden " +
+          className
+        }
+      >
         <div className="p-5 md:p-6">
           <div className="mb-4">
             <h2 className="text-base md:text-lg font-semibold text-gray-900">
@@ -190,15 +195,22 @@ export default function MeinBereich() {
         </Card>
 
         {/* Passwort */}
-        <Card title="Sicherheit">
+        <Card title="Sicherheit" className="relative z-40">
           <button
             type="button"
-            onMouseDown={() => setResetPressed(true)}
-            onMouseUp={() => setResetPressed(false)}
-            onMouseLeave={() => setResetPressed(false)}
-            onClick={handleResetPassword}
+            // 👇 Navigation hier (statt onClick)
+            onPointerDown={(e) => {
+              console.log("RESET POINTERDOWN");
+              setResetPressed(true);
+              // optional: verhindert Focus/Selection-Kram
+              e.preventDefault();
+              goToPassword();
+            }}
+            onPointerUp={() => setResetPressed(false)}
+            onPointerCancel={() => setResetPressed(false)}
+            onPointerLeave={() => setResetPressed(false)}
             className={
-              "rounded-full border border-white/50 bg-white/55 backdrop-blur-md px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-all duration-150 select-none " +
+              "relative z-50 pointer-events-auto rounded-full border border-white/50 bg-white/55 backdrop-blur-md px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-all duration-150 select-none " +
               (resetPressed
                 ? "bg-black text-white border-black"
                 : "hover:bg-white/70 cursor-pointer active:bg-black active:text-white active:border-black")

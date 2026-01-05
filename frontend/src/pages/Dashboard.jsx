@@ -23,7 +23,7 @@ export default function Dashboard() {
 
   const cards = [
     {
-      id: "faq",
+      id: "haufig",
       title: "Häufig gestellte Fragen",
       description: "Erhalte Informationen zu häufig auftretenden Fragen.",
       icon: "question_exchange",
@@ -68,6 +68,9 @@ export default function Dashboard() {
   // Navigation für Karten-Pfeil
   const handleCardClick = (id) => {
     switch (id) {
+      case "haufig":
+        navigate("/haufig");
+        break;
       case "chatbot":
         navigate("/chat-start");
         break;
@@ -75,7 +78,7 @@ export default function Dashboard() {
         navigate("/nuetzliche-links");
         break;
       case "me":
-        navigate("/mein-bereich"); // ✅ NEU
+        navigate("/mein-bereich");
         break;
       default:
         break;
@@ -136,7 +139,6 @@ export default function Dashboard() {
       {/* DESKTOP (lg+): Grid / Liste Umschaltung */}
       <div className="hidden lg:block">
         {isGrid ? (
-          // GRID: 2x2 Karten – mit Fade-In + Delays
           <div className="grid gap-6 md:gap-8 md:grid-cols-2">
             {cards.map((card, index) => (
               <div
@@ -149,7 +151,6 @@ export default function Dashboard() {
                   " group flex flex-col rounded-2xl bg-white/90 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition overflow-hidden"
                 }
               >
-                {/* Bunte Headerfläche */}
                 <div
                   className={`h-28 md:h-32 w-full bg-gradient-to-tr ${card.accent} flex items-center justify-center`}
                 >
@@ -160,7 +161,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Textbereich */}
                 <div className="p-5 md:p-6 flex flex-col gap-3 flex-1">
                   <h2 className="text-base md:text-lg font-semibold text-gray-900">
                     {card.title}
@@ -169,7 +169,6 @@ export default function Dashboard() {
                     {card.description}
                   </p>
 
-                  {/* Pfeil mit Kartenfarbe bei Hover */}
                   <div className="mt-2 flex justify-end items-center">
                     <button
                       type="button"
@@ -194,7 +193,6 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          // LISTENANSICHT – mit Fade-In + Delays
           <div className="space-y-4">
             {cards.map((card, index) => (
               <div
@@ -246,7 +244,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* MOBILE + TABLET (<lg): immer Grid-Karten untereinander, Pfeile direkt farbig */}
+      {/* MOBILE + TABLET (<lg) */}
       <div className="lg:hidden space-y-4">
         {cards.map((card, index) => (
           <div
@@ -257,7 +255,6 @@ export default function Dashboard() {
               " group flex flex-col rounded-2xl bg-white/90 border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition overflow-hidden"
             }
           >
-            {/* Bunte Headerfläche */}
             <div
               className={`h-28 w-full bg-gradient-to-tr ${card.accent} flex items-center justify-center`}
             >
@@ -268,7 +265,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Textbereich */}
             <div className="p-5 flex flex-col gap-3 flex-1">
               <h2 className="text-base font-semibold text-gray-900">
                 {card.title}
@@ -277,7 +273,6 @@ export default function Dashboard() {
                 {card.description}
               </p>
 
-              {/* Pfeil: auf Mobile/Tablet IMMER in Kartenfarbe */}
               <div className="mt-2 flex justify-end items-center">
                 <button
                   type="button"
@@ -286,9 +281,7 @@ export default function Dashboard() {
                 >
                   <span
                     className="material-symbols-outlined text-[20px] transition-colors"
-                    style={{
-                      color: card.arrowColor,
-                    }}
+                    style={{ color: card.arrowColor }}
                   >
                     arrow_forward
                   </span>
