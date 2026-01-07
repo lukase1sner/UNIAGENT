@@ -7,6 +7,8 @@ import com.uniagent.backend.dto.LoginRequest;
 import com.uniagent.backend.dto.LoginResponse;
 import com.uniagent.backend.dto.RegisterRequest;
 import com.uniagent.backend.dto.RegisterResponse;
+import com.uniagent.backend.dto.UpdateProfileRequest;
+import com.uniagent.backend.dto.UpdateProfileResponse;
 import com.uniagent.backend.model.SupabaseSignUpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,6 +177,56 @@ public class AuthService {
         } catch (Exception e) {
             log.error("Technischer Fehler beim Passwort ändern", e);
             return new ChangePasswordResponse(false, "Technischer Fehler beim Passwort ändern.");
+        }
+    }
+
+    // -----------------------------------------------------
+    // PROFIL AKTUALISIEREN (Mein Bereich)
+    // -----------------------------------------------------
+    public UpdateProfileResponse updateProfile(String accessToken, UpdateProfileRequest request) {
+        try {
+            if (accessToken == null || accessToken.isBlank()) {
+                return new UpdateProfileResponse(false, "Token fehlt.");
+            }
+
+            // 1) User-ID aus Token ermitteln (sicher: user kann nur sich selbst updaten)
+            SupabaseAuthClient.SupabaseUser supaUser = supabaseAuthClient.getUserFromAccessToken(accessToken);
+            if (supaUser == null || supaUser.id() == null || supaUser.id().isBlank()) {
+                return new UpdateProfileResponse(false, "Ungültiger Token.");
+            }
+
+            String authUserId = supaUser.id();
+
+            // 2) Eigene users-Tabelle aktualisieren (Vorname/Nachname)
+            supabaseDatabaseClient.updateUserNames(
+                    authUserId,
+                    request.getFirstName(),
+                    request.getLastName()
+            );
+
+            // 3) Supabase Auth aktualisieren (E-Mail + metadata) (Admin API, server-side)
+            boolean ok = supabaseAuthClient.updateUserAdmin(
+                    authUserId,
+                    request.getEmail(),
+                    request.getFirstName(),
+                    request.getLastName()
+            );
+
+            if (!ok) {
+                return new UpdateProfileResponse(false, "Profil konnte nicht aktualisiert werden.");
+            }
+
+            return new UpdateProfileResponse(
+                    true,
+                    "OK",
+                    request.getFirstName(),
+                    request.getLastName(),
+                    request.getEmail()
+            );
+
+        } catch (Exception e) {
+            log.error("Technischer Fehler beim Profil-Update", e);
+            return new UpdateProfileResponse(false, "Technischer Fehler beim Profil-Update.");
         }
     }
 }

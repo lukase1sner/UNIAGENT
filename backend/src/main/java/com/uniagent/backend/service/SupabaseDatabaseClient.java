@@ -67,6 +67,18 @@ public class SupabaseDatabaseClient {
     }
 
     /**
+     * Aktualisiert Vorname/Nachname für den User in deiner users-Tabelle.
+     */
+    public void updateUserNames(String authUserId, String firstName, String lastName) {
+        String sql = """
+            UPDATE users
+            SET first_name = ?, last_name = ?
+            WHERE auth_user_id = ?::uuid
+        """;
+        jdbcTemplate.update(sql, firstName, lastName, authUserId);
+    }
+
+    /**
      * Kleiner DTO-Record für den Benutzer aus deiner eigenen Tabelle.
      */
     public record UserRecord(

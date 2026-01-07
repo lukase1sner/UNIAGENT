@@ -13,6 +13,7 @@ export default function MeinBereich() {
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [saveMsgIsError, setSaveMsgIsError] = useState(false);
 
   const [savePressed, setSavePressed] = useState(false);
   const [resetPressed, setResetPressed] = useState(false);
@@ -56,17 +57,64 @@ export default function MeinBereich() {
   }, [user, firstName, lastName, email]);
 
   const handleSave = async () => {
+    console.log("SAVE CLICKED", { firstName, lastName, email, user });
+
     setSaveMsg("");
+    setSaveMsgIsError(false);
+
     if (!validate()) return;
+
+    // Must be logged in and have token
+    const token =
+      user?.token ||
+      user?.accessToken ||
+      user?.access_token ||
+      user?.jwt;
+
+    if (!token) {
+      setSaveMsgIsError(true);
+      setSaveMsg("Nicht eingeloggt oder Token fehlt.");
+      return;
+    }
 
     setIsSaving(true);
     try {
-      const updatedUser = { ...(user || {}), firstName, lastName, email };
+      const res = await fetch("http://localhost:8080/api/auth/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ firstName, lastName, email }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      console.log("PROFILE SAVE RESPONSE", res.status, data);
+
+      if (!res.ok || data?.success === false) {
+        setSaveMsgIsError(true);
+        setSaveMsg(data?.message || "Speichern fehlgeschlagen.");
+        return;
+      }
+
+      // Use server-confirmed values if present
+      const updatedUser = {
+        ...(user || {}),
+        firstName: data?.firstName ?? firstName,
+        lastName: data?.lastName ?? lastName,
+        email: data?.email ?? email,
+      };
+
       localStorage.setItem("uniagentUser", JSON.stringify(updatedUser));
       setUser(updatedUser);
 
+      setSaveMsgIsError(false);
       setSaveMsg("Gespeichert ✓");
       setTimeout(() => setSaveMsg(""), 2000);
+    } catch (e) {
+      console.warn("Profil-Update fehlgeschlagen:", e);
+      setSaveMsgIsError(true);
+      setSaveMsg("Serverfehler.");
     } finally {
       setIsSaving(false);
     }
@@ -127,7 +175,8 @@ export default function MeinBereich() {
     );
   };
 
-  const saveDisabled = !isDirty || isSaving;
+  // IMPORTANT: Keep save clickable so we can always test the API call
+  const saveDisabled = isSaving;
 
   return (
     <div className="w-full h-full px-4 pt-4 pb-6 md:px-8 md:pt-4 md:pb-8">
@@ -168,13 +217,22 @@ export default function MeinBereich() {
             <div className="pt-2 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
               <button
                 type="button"
-                onMouseDown={() => setSavePressed(true)}
-                onMouseUp={() => setSavePressed(false)}
-                onMouseLeave={() => setSavePressed(false)}
-                onClick={handleSave}
+                onPointerDown={(e) => {
+                  // Prevent parent/overlay issues swallowing clicks
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  console.log("SAVE POINTERDOWN");
+                  setSavePressed(true);
+
+                  if (!saveDisabled) handleSave();
+                }}
+                onPointerUp={() => setSavePressed(false)}
+                onPointerCancel={() => setSavePressed(false)}
+                onPointerLeave={() => setSavePressed(false)}
                 disabled={saveDisabled}
                 className={
-                  "rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all duration-150 select-none " +
+                  "relative z-50 pointer-events-auto rounded-full px-5 py-2.5 text-sm font-semibold shadow-sm transition-all duration-150 select-none " +
                   (saveDisabled
                     ? "bg-white/50 text-gray-500 cursor-not-allowed"
                     : savePressed
@@ -186,10 +244,19 @@ export default function MeinBereich() {
               </button>
 
               {saveMsg && (
-                <span className="text-sm font-semibold text-green-700">
+                <span
+                  className={
+                    "text-sm font-semibold " +
+                    (saveMsgIsError ? "text-red-700" : "text-green-700")
+                  }
+                >
                   {saveMsg}
                 </span>
               )}
+
+              <span className="text-xs text-gray-500">
+                {isDirty ? "Änderungen erkannt" : "Keine Änderungen"}
+              </span>
             </div>
           </div>
         </Card>
@@ -198,11 +265,9 @@ export default function MeinBereich() {
         <Card title="Sicherheit" className="relative z-40">
           <button
             type="button"
-            // 👇 Navigation hier (statt onClick)
             onPointerDown={(e) => {
               console.log("RESET POINTERDOWN");
               setResetPressed(true);
-              // optional: verhindert Focus/Selection-Kram
               e.preventDefault();
               goToPassword();
             }}

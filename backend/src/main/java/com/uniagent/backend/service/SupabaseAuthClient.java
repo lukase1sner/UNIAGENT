@@ -26,6 +26,11 @@ public class SupabaseAuthClient {
         this.serviceRoleKey = config.getServiceRoleKey(); // wichtig für Admin-Calls
     }
 
+    /**
+     * Minimaler DTO für Supabase User (aus /auth/v1/user).
+     */
+    public record SupabaseUser(String id, String email) {}
+
     // --------------------------------------------------------------
     // SIGNUP (Registrierung) – erstellt User per Admin-Endpoint
     // → email_confirm = true => kein "Waiting for verification"
@@ -105,6 +110,87 @@ public class SupabaseAuthClient {
         } catch (Exception e) {
             log.error("Technischer Fehler bei Supabase Login", e);
             return null;
+        }
+    }
+
+    // --------------------------------------------------------------
+    // USER AUS TOKEN (für "Mein Bereich" Profil-Update)
+    // -> nutzt /auth/v1/user mit anon key + bearer token
+    // --------------------------------------------------------------
+    @SuppressWarnings("unchecked")
+    public SupabaseUser getUserFromAccessToken(String accessToken) {
+        try {
+            String url = supabaseUrl + "/auth/v1/user";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("apikey", anonKey);
+            headers.setBearerAuth(accessToken);
+
+            HttpEntity<Void> request = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    request,
+                    Map.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.warn("Supabase /auth/v1/user Status: {}", response.getStatusCode());
+                return null;
+            }
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) return null;
+
+            String id = (String) body.get("id");
+            String email = (String) body.get("email");
+
+            return new SupabaseUser(id, email);
+
+        } catch (Exception e) {
+            log.error("Fehler bei Supabase /auth/v1/user", e);
+            return null;
+        }
+    }
+
+    // --------------------------------------------------------------
+    // USER UPDATE (Admin) - Email + Metadata
+    // -> nutzt /auth/v1/admin/users/{id} mit service role key
+    // --------------------------------------------------------------
+    public boolean updateUserAdmin(String authUserId, String email, String firstName, String lastName) {
+        try {
+            String url = supabaseUrl + "/auth/v1/admin/users/" + authUserId;
+
+            Map<String, Object> body = Map.of(
+                    "email", email,
+                    "email_confirm", true,
+                    "user_metadata", Map.of(
+                            "first_name", firstName,
+                            "last_name", lastName
+                    )
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("apikey", serviceRoleKey);
+            headers.set("Authorization", "Bearer " + serviceRoleKey);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    request,
+                    Map.class
+            );
+
+            log.info("Supabase Admin Update User Status: {}", response.getStatusCode());
+            return response.getStatusCode().is2xxSuccessful();
+
+        } catch (Exception e) {
+            log.error("Fehler bei Supabase Admin User-Update", e);
+            return false;
         }
     }
 
