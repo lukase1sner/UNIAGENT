@@ -12,14 +12,45 @@ export default function Chatbot() {
 
   // Guard, damit die Initialnachricht nur EINMAL gesendet wird
   const initialHandledRef = useRef(false);
-  
+
   // Session ID für n8n Memory - bleibt während der gesamten Chat-Session gleich
-  const sessionIdRef = useRef('session-' + Date.now());
+  const sessionIdRef = useRef("session-" + Date.now());
 
   // ========================================
   // WICHTIG: Hier deine n8n Webhook URL eintragen!
   // ========================================
-  const N8N_WEBHOOK_URL = "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
+  const N8N_WEBHOOK_URL =
+    "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
+
+  // Hilfsfunktion: Bot-Text aus n8n Response extrahieren
+  const extractBotText = (data) => {
+    if (!data) return null;
+
+    // direkter String
+    if (typeof data === "string") return data;
+
+    // Objekt: { output: "..."} oder { BotResponse: "..." }
+    if (typeof data.output === "string") return data.output;
+    if (typeof data.BotResponse === "string") return data.BotResponse;
+
+    // Array: [{ output: "..." }] oder [{ BotResponse: "..." }]
+    if (Array.isArray(data) && data[0]) {
+      if (typeof data[0].output === "string") return data[0].output;
+      if (typeof data[0].BotResponse === "string") return data[0].BotResponse;
+
+      // n8n wrapper: [{ json: { ... } }]
+      if (data[0].json) {
+        if (typeof data[0].json.output === "string") return data[0].json.output;
+        if (typeof data[0].json.BotResponse === "string")
+          return data[0].json.BotResponse;
+      }
+    }
+
+    // verschachtelt: { output: { output: "..." } }
+    if (data.output && typeof data.output.output === "string") return data.output.output;
+
+    return null;
+  };
 
   // Nachricht an n8n Backend schicken + Bot-Antwort anhängen
   const sendMessageToBot = async (userText) => {
@@ -36,9 +67,9 @@ export default function Chatbot() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          chatInput: trimmed,           // n8n erwartet "chatInput"
-          sessionId: sessionIdRef.current  // Für Memory/Kontext
+        body: JSON.stringify({
+          chatInput: trimmed, // n8n erwartet "chatInput"
+          sessionId: sessionIdRef.current, // Für Memory/Kontext
         }),
       });
 
@@ -46,24 +77,22 @@ export default function Chatbot() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      // n8n Response parsen - kann verschiedene Formate haben
-      let botText = "Entschuldigung, ich konnte nicht helfen.";
-      
-      if (data && data.output) {
-        // Format: { output: "..." }
-        botText = data.output;
-      } else if (Array.isArray(data) && data[0] && data[0].output) {
-        // Format: [{ output: "..." }]
-        botText = data[0].output;
-      } else if (typeof data === 'string') {
-        // Direkter String
-        botText = data;
+      // robust: erst text lesen, dann versuchen JSON zu parsen
+      const raw = await response.text();
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = raw; // falls text/plain zurückkommt
       }
 
+      // Standard-Fallback
+      let botText = "Entschuldigung, ich konnte nicht helfen.";
+
+      const extracted = extractBotText(data);
+      if (extracted) botText = extracted;
+
       setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
-      
     } catch (error) {
       console.error("Fehler beim Abrufen der Antwort:", error);
       setMessages((prev) => [
@@ -116,15 +145,24 @@ export default function Chatbot() {
             </div>
           </div>
         ))}
-        
+
         {/* Loading Indicator */}
         {isLoading && (
           <div className="flex justify-start">
             <div className="px-4 py-3 rounded-xl bg-gray-200 text-gray-800">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div
+                  className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                ></div>
               </div>
             </div>
           </div>
@@ -142,6 +180,7 @@ export default function Chatbot() {
               className="absolute left-2 top-1/2 -translate-y-1/2
                          w-10 h-10 flex items-center justify-center
                          bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition"
+              type="button"
             >
               <span className="material-symbols-outlined text-[22px]">
                 upload_file
@@ -165,6 +204,7 @@ export default function Chatbot() {
             <button
               onClick={sendMessage}
               disabled={!isReadyToSend}
+              type="button"
               className={
                 "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full transition " +
                 (isReadyToSend
