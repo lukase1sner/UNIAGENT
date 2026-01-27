@@ -17,7 +17,6 @@ export default function ChatbotStartLayout() {
 
   // 3-dots menu
   const [menuOpenFor, setMenuOpenFor] = useState(null);
-  const menuRef = useRef(null);
 
   // Delete modal
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -79,7 +78,7 @@ export default function ChatbotStartLayout() {
 
   // ---------------------------------------------
   // Aktiver Chat: state + fallback sessionStorage
-  // (Start-Seite: kann trotzdem einen "aktuellen" Chat haben)
+  // (Start-Seite: wir highlighten NICHT, aber merken trotzdem die Auswahl)
   // ---------------------------------------------
   const [activeChatId, setActiveChatId] = useState(() => {
     return sessionStorage.getItem("uniagentActiveChatId") || null;
@@ -172,15 +171,25 @@ export default function ChatbotStartLayout() {
   }, []);
 
   // ---------------------------------------------
-  // Click-outside: 3-Punkte Menü schließen
+  // Close menus when clicking outside
+  // (Fix: Dropdown immer korrekt sichtbar – nicht in die Chat-Box "eingedrückt")
   // ---------------------------------------------
   useEffect(() => {
     const onDown = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) setMenuOpenFor(null);
+      const el = e.target;
+      if (!(el instanceof HTMLElement)) return;
+
+      // Klick auf 3-Punkte Button -> nicht schließen
+      if (el.closest("[data-chat-menu-btn='1']")) return;
+
+      // Klick im Dropdown -> nicht schließen
+      if (el.closest("[data-chat-menu='1']")) return;
+
+      setMenuOpenFor(null);
     };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
   }, []);
 
   // ---------------------------------------------
@@ -223,9 +232,7 @@ export default function ChatbotStartLayout() {
       setActiveChatId(id);
       sessionStorage.setItem("uniagentActiveChatId", id);
 
-      // Sidebar refresh
       window.dispatchEvent(new Event("uniagent:chatsChanged"));
-
       navigate("/chat", { state: { chatId: id } });
     } catch (e) {
       console.error("Neuer Chat fehlgeschlagen:", e);
@@ -243,7 +250,6 @@ export default function ChatbotStartLayout() {
     navigate("/chat", { state: { chatId } });
   };
 
-  // Delete: Modal öffnen
   const requestDeleteChat = (chatId) => {
     if (!chatId) return;
     setMenuOpenFor(null);
@@ -251,17 +257,16 @@ export default function ChatbotStartLayout() {
     setDeleteOpen(true);
   };
 
-  // Delete: wirklich löschen (ohne confirm popup)
   const confirmDeleteChat = async () => {
     const chatId = deleteChatId;
     const token = getToken();
+
+    setDeleteOpen(false);
+
     if (!token || !chatId) {
-      setDeleteOpen(false);
       setDeleteChatId(null);
       return;
     }
-
-    setDeleteOpen(false);
 
     // Optimistic UI
     setChats((prev) => prev.filter((c) => c.id !== chatId));
@@ -277,7 +282,6 @@ export default function ChatbotStartLayout() {
         throw new Error(`HTTP ${res.status} ${t}`);
       }
 
-      // Wenn aktiver Chat gelöscht: active reset (Start bleibt Start)
       if (activeChatId === chatId) {
         setActiveChatId(null);
         sessionStorage.removeItem("uniagentActiveChatId");
@@ -294,7 +298,7 @@ export default function ChatbotStartLayout() {
   };
 
   // ---------------------------------------------
-  // Suche: Frontend-Filter (wie ChatbotLayout)
+  // Suche (Frontend-Filter)
   // ---------------------------------------------
   const filteredChats = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
@@ -302,16 +306,6 @@ export default function ChatbotStartLayout() {
     return chats.filter((c) => (c.title || "").toLowerCase().includes(q));
   }, [chats, searchValue]);
 
-  // ---------------------------------------------
-  // "Aktuell" Label
-  // ---------------------------------------------
-  const hasActive = Boolean(activeChatId);
-  const activeIndex = hasActive ? chats.findIndex((c) => c.id === activeChatId) : -1;
-  const showAktuellLabel = hasActive && activeIndex >= 0;
-
-  // ---------------------------------------------
-  // UI
-  // ---------------------------------------------
   return (
     <div
       className="w-screen h-screen flex"
@@ -320,7 +314,7 @@ export default function ChatbotStartLayout() {
           "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
       }}
     >
-      {/* Sidebar (1:1 wie ChatbotLayout) */}
+      {/* Sidebar */}
       <aside
         className={`${
           collapsed ? "w-20" : "w-72"
@@ -441,71 +435,58 @@ export default function ChatbotStartLayout() {
                   )}
 
                   {!loadingChats &&
-                    chats.map((c, idx) => {
-                      const active = activeChatId === c.id;
+                    chats.map((c) => (
+                      <div key={c.id} className="relative group">
+                        {/* ✅ Start-Ansicht: alle Boxen weiß (kein Aktuell, kein Grau) */}
+                        <button
+                          type="button"
+                          onClick={() => openChat(c.id)}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition bg-white hover:bg-gray-50 text-gray-800 cursor-pointer"
+                          title={c.title}
+                        >
+                          <span className="material-symbols-outlined text-[18px] text-gray-700">
+                            chat_bubble
+                          </span>
 
-                      return (
-                        <React.Fragment key={c.id}>
-                          {showAktuellLabel && idx === activeIndex && (
-                            <div className="px-2 pt-1 pb-1 text-[11px] font-semibold tracking-wide text-gray-600 uppercase">
-                              Aktuell
-                            </div>
-                          )}
+                          <span className="flex-1 text-left truncate">{c.title || "Neuer Chat"}</span>
 
+                          {/* 3 Punkte */}
+                          <button
+                            type="button"
+                            data-chat-menu-btn="1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuOpenFor((prev) => (prev === c.id ? null : c.id));
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity
+                                       w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200 cursor-pointer"
+                            title="Optionen"
+                          >
+                            <span className="material-symbols-outlined text-[20px] text-gray-700">
+                              more_horiz
+                            </span>
+                          </button>
+                        </button>
+
+                        {/* ✅ Dropdown: als sibling absolute, hoher z-index => immer sichtbar */}
+                        {menuOpenFor === c.id && (
                           <div
-                            className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                              active ? "bg-gray-200" : "bg-white hover:bg-gray-50"
-                            }`}
+                            data-chat-menu="1"
+                            className="absolute right-2 top-10 z-[9999] w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <button
                               type="button"
-                              onClick={() => openChat(c.id)}
-                              className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
-                              title={c.title}
+                              className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 cursor-pointer"
+                              onClick={() => requestDeleteChat(c.id)}
                             >
-                              <span className="material-symbols-outlined text-[18px] text-gray-700">
-                                chat_bubble
-                              </span>
-                              <span className="truncate text-gray-800">{c.title || "Neuer Chat"}</span>
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                              Chat löschen
                             </button>
-
-                            {/* 3 Punkte */}
-                            <button
-                              type="button"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-300 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMenuOpenFor((prev) => (prev === c.id ? null : c.id));
-                              }}
-                              aria-label="Chat Optionen"
-                              title="Optionen"
-                            >
-                              <span className="material-symbols-outlined text-[20px] text-gray-700">
-                                more_horiz
-                              </span>
-                            </button>
-
-                            {/* Dropdown */}
-                            {menuOpenFor === c.id && (
-                              <div
-                                ref={menuRef}
-                                className="absolute right-2 top-10 z-50 w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 cursor-pointer"
-                                  onClick={() => requestDeleteChat(c.id)}
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                                  Chat löschen
-                                </button>
-                              </div>
-                            )}
                           </div>
-                        </React.Fragment>
-                      );
-                    })}
+                        )}
+                      </div>
+                    ))}
                 </div>
               </div>
             </nav>
@@ -526,7 +507,7 @@ export default function ChatbotStartLayout() {
         <Outlet />
       </main>
 
-      {/* SEARCH MODAL (1:1 wie ChatbotLayout, ohne unteren "Schließen" Button) */}
+      {/* SEARCH MODAL (ohne unteren Button) */}
       {searchOpen && (
         <div
           className="fixed inset-0 z-[80] bg-black/35 flex items-center justify-center p-4"
@@ -597,7 +578,7 @@ export default function ChatbotStartLayout() {
         </div>
       )}
 
-      {/* DELETE MODAL (wie gewünscht) */}
+      {/* DELETE MODAL */}
       {deleteOpen && (
         <div
           className="fixed inset-0 z-[90] bg-black/35 flex items-center justify-center p-4"
