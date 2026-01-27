@@ -62,7 +62,7 @@ export default function DashboardLayout() {
   // Mobile Menü-Items (gleiches "Design-System" wie Sidebar)
   const mobileItems = [
     { icon: "team_dashboard", label: "Dashboard", path: "/dashboard" },
-    { icon: "question_exchange", label: "Häufig gestellte Fragen", path: null },
+    { icon: "question_exchange", label: "Häufig gestellte Fragen", path: "/haufig" }, // ✅ FIX
     { icon: "link", label: "Nützliche Links", path: "/nuetzliche-links" },
     { icon: "chat", label: "Chatbot fragen", path: "/chat-start" },
     { icon: "person", label: "Mein Bereich", path: "/mein-bereich" },
@@ -254,6 +254,8 @@ export default function DashboardLayout() {
                         ? "/mein-bereich"
                         : label === "Nützliche Links"
                         ? "/nuetzliche-links"
+                        : label === "Häufig gestellte Fragen"
+                        ? "/haufig" // ✅ FIX
                         : null;
 
                     const active = path ? isActive(path) : false;
@@ -321,7 +323,7 @@ export default function DashboardLayout() {
                 <nav className="flex flex-col gap-4 flex-1">
                   {[
                     ["team_dashboard", "Dashboard", isActive("/dashboard")],
-                    ["question_exchange", "Häufig gestellte Fragen", false],
+                    ["question_exchange", "Häufig gestellte Fragen", isActive("/haufig")], // ✅ FIX
                     ["link", "Nützliche Links", isActive("/nuetzliche-links")],
                     ["chat", "Chatbot fragen", isActive("/chat-start")],
                     ["person", "Mein Bereich", isActive("/mein-bereich")],
@@ -330,6 +332,7 @@ export default function DashboardLayout() {
                       key={icon}
                       onClick={() => {
                         if (icon === "team_dashboard") goTo("/dashboard");
+                        if (icon === "question_exchange") goTo("/haufig"); // ✅ FIX
                         if (icon === "chat") goTo("/chat-start");
                         if (icon === "link") goTo("/nuetzliche-links");
                         if (icon === "person") goTo("/mein-bereich");
