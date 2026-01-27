@@ -103,7 +103,11 @@ export default function ChatbotStartLayout() {
       const data = await res.json().catch(() => null);
 
       // robust: falls Backend wrapped antwortet
-      const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.chats)
+        ? data.chats
+        : [];
 
       setChats(list);
     } catch (e) {
@@ -238,6 +242,7 @@ export default function ChatbotStartLayout() {
     setSearchOpen(true);
     setSearchValue("");
     setSearchResults([]);
+    setSearchLoading(false);
     setMenuChatId(null);
   };
 
@@ -245,6 +250,7 @@ export default function ChatbotStartLayout() {
     setSearchOpen(false);
     setSearchValue("");
     setSearchResults([]);
+    setSearchLoading(false);
   };
 
   useEffect(() => {
@@ -253,10 +259,13 @@ export default function ChatbotStartLayout() {
     const q = searchValue.trim();
     const token = getToken();
 
-    if (!q || !token) {
+    // ✅ wichtig: nicht gegen Frontend fetchen, wenn API_BASE_URL fehlt
+    if (!API_BASE_URL || !q || !token) {
       setSearchResults([]);
       return;
     }
+
+    const controller = new AbortController();
 
     const t = setTimeout(async () => {
       setSearchLoading(true);
@@ -268,6 +277,7 @@ export default function ChatbotStartLayout() {
             headers: {
               ...authHeaders(),
             },
+            signal: controller.signal,
           }
         );
 
@@ -277,20 +287,28 @@ export default function ChatbotStartLayout() {
         }
 
         const data = await res.json().catch(() => null);
-        const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+          ? data.results
+          : [];
 
         setSearchResults(list);
       } catch (e) {
-        console.error("Chat-Suche fehlgeschlagen:", e);
+        if (e?.name !== "AbortError") {
+          console.error("Chat-Suche fehlgeschlagen:", e);
+        }
         setSearchResults([]);
       } finally {
         setSearchLoading(false);
       }
     }, 220);
 
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchValue, searchOpen]);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [searchValue, searchOpen, API_BASE_URL]);
 
   // Outside click für 3-Punkte Menü
   useEffect(() => {
@@ -475,7 +493,9 @@ export default function ChatbotStartLayout() {
                             data-chat-menu-btn="1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setMenuChatId((prev) => (prev === c.id ? null : c.id));
+                              setMenuChatId((prev) =>
+                                prev === c.id ? null : c.id
+                              );
                             }}
                             className="opacity-0 group-hover:opacity-100 transition-opacity
                                        w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100"
@@ -542,7 +562,9 @@ export default function ChatbotStartLayout() {
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
                 title="Schließen"
               >
-                <span className="material-symbols-outlined text-[22px]">close</span>
+                <span className="material-symbols-outlined text-[22px]">
+                  close
+                </span>
               </button>
             </div>
 
@@ -562,12 +584,18 @@ export default function ChatbotStartLayout() {
 
               <div className="mt-4 max-h-[52vh] overflow-y-auto">
                 {searchLoading && (
-                  <div className="text-sm text-gray-500 py-3">Suche läuft…</div>
+                  <div className="text-sm text-gray-500 py-3">
+                    Suche läuft…
+                  </div>
                 )}
 
-                {!searchLoading && searchValue.trim() && searchResults.length === 0 && (
-                  <div className="text-sm text-gray-500 py-3">Keine Ergebnisse.</div>
-                )}
+                {!searchLoading &&
+                  searchValue.trim() &&
+                  searchResults.length === 0 && (
+                    <div className="text-sm text-gray-500 py-3">
+                      Keine Ergebnisse.
+                    </div>
+                  )}
 
                 <div className="flex flex-col gap-2">
                   {searchResults.map((r) => (
