@@ -1,6 +1,7 @@
 // src/pages/Register.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -56,12 +57,7 @@ export default function Register() {
     return "";
   };
 
-  const validatePassword = (
-    value,
-    emailValue,
-    firstNameValue,
-    lastNameValue
-  ) => {
+  const validatePassword = (value, emailValue, firstNameValue, lastNameValue) => {
     if (!value) return "Bitte ein Passwort eingeben.";
 
     if (value.length < 8) {
@@ -156,12 +152,20 @@ export default function Register() {
     setServerError("");
     setServerSuccess("");
 
+    // Optional aber sehr hilfreich: früh merken, falls ENV in Vercel fehlt
+    if (!API_BASE_URL) {
+      setServerError(
+        "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt. Bitte in Vercel (oder lokal .env) setzen."
+      );
+      return;
+    }
+
     const isValid = validateForm();
     if (!isValid) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8080/api/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

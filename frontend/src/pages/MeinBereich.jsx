@@ -1,6 +1,7 @@
 // src/pages/MeinBereich.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 export default function MeinBereich() {
   const navigate = useNavigate();
@@ -58,13 +59,20 @@ export default function MeinBereich() {
   const handleSave = async () => {
     setSaveMsg("");
     setSaveMsgIsError(false);
+
+    // Optional aber super hilfreich: sofort Fehler zeigen, falls ENV fehlt (Vercel)
+    if (!API_BASE_URL) {
+      setSaveMsgIsError(true);
+      setSaveMsg(
+        "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt (Vercel / .env)."
+      );
+      return;
+    }
+
     if (!validate()) return;
 
     const token =
-      user?.token ||
-      user?.accessToken ||
-      user?.access_token ||
-      user?.jwt;
+      user?.token || user?.accessToken || user?.access_token || user?.jwt;
 
     if (!token) {
       setSaveMsgIsError(true);
@@ -74,7 +82,7 @@ export default function MeinBereich() {
 
     setIsSaving(true);
     try {
-      const res = await fetch("http://localhost:8080/api/auth/profile", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -162,9 +170,25 @@ export default function MeinBereich() {
       <div className="max-w-2xl space-y-6">
         <Card title="Kontodaten">
           <div className="flex flex-col gap-4">
-            <InputField label="Vorname" value={firstName} onChange={(e) => setFirstName(e.target.value)} error={errors.firstName} />
-            <InputField label="Nachname" value={lastName} onChange={(e) => setLastName(e.target.value)} error={errors.lastName} />
-            <InputField label="E-Mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} />
+            <InputField
+              label="Vorname"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              error={errors.firstName}
+            />
+            <InputField
+              label="Nachname"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              error={errors.lastName}
+            />
+            <InputField
+              label="E-Mail"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+            />
 
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <button
@@ -179,16 +203,16 @@ export default function MeinBereich() {
               </button>
 
               {saveMsg && (
-                <span className={`text-sm font-semibold ${saveMsgIsError ? "text-red-700" : "text-green-700"}`}>
+                <span
+                  className={`text-sm font-semibold ${
+                    saveMsgIsError ? "text-red-700" : "text-green-700"
+                  }`}
+                >
                   {saveMsg}
                 </span>
               )}
 
-              {isDirty && (
-                <span className="text-xs text-gray-500">
-                  Änderungen erkannt
-                </span>
-              )}
+              {isDirty && <span className="text-xs text-gray-500">Änderungen erkannt</span>}
             </div>
           </div>
         </Card>

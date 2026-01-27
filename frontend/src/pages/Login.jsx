@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -105,11 +106,19 @@ export default function Login() {
     setServerError("");
     setServerSuccess("");
 
+    // Optional aber sehr hilfreich: früh merken, falls ENV in Vercel fehlt
+    if (!API_BASE_URL) {
+      setServerError(
+        "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt. Bitte in Vercel (oder lokal .env) setzen."
+      );
+      return;
+    }
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -127,8 +136,8 @@ export default function Login() {
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           email: data.email || email,
-          role: data.role,        // ⭐ NEU
-          token: data.token,      // ⭐ NEU
+          role: data.role, // ⭐ NEU
+          token: data.token, // ⭐ NEU
         };
 
         localStorage.setItem("uniagentUser", JSON.stringify(userForStorage));
@@ -137,7 +146,7 @@ export default function Login() {
 
         setTimeout(() => {
           if (data.role === "Support") {
-            navigate("/support");   // ⭐ NEU
+            navigate("/support"); // ⭐ NEU
           } else {
             navigate("/dashboard");
           }

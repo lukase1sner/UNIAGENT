@@ -1,6 +1,7 @@
 // src/pages/Passwordaendern.jsx
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 export default function Passwordaendern() {
   const navigate = useNavigate();
@@ -120,13 +121,21 @@ export default function Passwordaendern() {
     setServerError("");
     setServerSuccess("");
 
+    // Optional aber sehr hilfreich: früh merken, falls ENV in Vercel fehlt
+    if (!API_BASE_URL) {
+      setServerError(
+        "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt. Bitte in Vercel (oder lokal .env) setzen."
+      );
+      return;
+    }
+
     const isValid = validateForm();
     if (!isValid) return;
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/change-password", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,7 +152,8 @@ export default function Passwordaendern() {
 
       if (!response.ok) {
         setServerError(
-          data.message || "Passwort konnte nicht geändert werden. Bitte prüfe deine Eingaben."
+          data.message ||
+            "Passwort konnte nicht geändert werden. Bitte prüfe deine Eingaben."
         );
       } else {
         setServerSuccess("Passwort erfolgreich geändert.");
@@ -211,7 +221,9 @@ export default function Passwordaendern() {
                 if (touched.oldPassword) {
                   setErrors((prev) => ({
                     ...prev,
-                    oldPassword: e.target.value ? "" : "Bitte dein aktuelles Passwort eingeben.",
+                    oldPassword: e.target.value
+                      ? ""
+                      : "Bitte dein aktuelles Passwort eingeben.",
                   }));
                 }
               }}
@@ -250,7 +262,10 @@ export default function Passwordaendern() {
                 if (touched.newPassword) {
                   setErrors((prev) => ({
                     ...prev,
-                    newPassword: validateNewPassword(e.target.value, emailFromStorage),
+                    newPassword: validateNewPassword(
+                      e.target.value,
+                      emailFromStorage
+                    ),
                   }));
                 }
                 // confirm ggf. live nachziehen
