@@ -1,15 +1,18 @@
-// src/pages/ChatbotStart.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 export default function ChatbotStart() {
   const [input, setInput] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
 
-  const isReadyToSend = input.trim().length > 0;
+  const isReadyToSend = input.trim().length > 0 && !isCreating;
 
+  // --------------------------------------------------
   // User aus LocalStorage laden
+  // --------------------------------------------------
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
@@ -27,19 +30,49 @@ export default function ChatbotStart() {
     return user.firstName || user.first_name || "Benutzer";
   };
 
-  const sendMessage = () => {
-    if (!isReadyToSend) return;
+  // --------------------------------------------------
+  // Neuer Chat + erste Nachricht
+  // Erwartet Backend:
+  // POST /api/chats
+  // Body: { userId, firstMessage }
+  // -> { id }
+  // --------------------------------------------------
+  const sendMessage = async () => {
+    if (!isReadyToSend || !currentUser?.id) return;
 
     const trimmed = input.trim();
-
-    // Input leeren
     setInput("");
+    setIsCreating(true);
 
-    // Navigation in den Chat mit der ersten User-Nachricht,
-    // die dort direkt an den Bot gesendet wird
-    navigate("/chat", {
-      state: { initialUserMessage: trimmed },
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/chats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          firstMessage: trimmed,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // 🔥 WICHTIG: chatId an Chatbot übergeben
+      navigate("/chat", {
+        state: {
+          chatId: data.id,
+          initialUserMessage: trimmed,
+        },
+      });
+    } catch (err) {
+      console.error("Chat erstellen fehlgeschlagen:", err);
+      alert("Chat konnte nicht erstellt werden. Bitte versuche es erneut.");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const categories = [
@@ -66,12 +99,11 @@ export default function ChatbotStart() {
 
       {/* Eingabebox */}
       <div className="w-full max-w-3xl">
-        {/* Gradient Außenrahmen */}
         <div className="relative p-[4px] rounded-2xl bg-gradient-to-b from-[#E4ECD9] to-[#98C73C90]">
-          {/* Weißer Innencontainer */}
           <div className="relative rounded-xl bg-white">
-            {/* Upload Button links */}
+            {/* Upload Button (noch ohne Funktion) */}
             <button
+              type="button"
               className="absolute left-2 top-1/2 -translate-y-1/2
                          w-10 h-10 flex items-center justify-center
                          bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition"
@@ -91,14 +123,16 @@ export default function ChatbotStart() {
               onKeyDown={(e) =>
                 e.key === "Enter" && isReadyToSend && sendMessage()
               }
+              disabled={isCreating}
             />
 
-            {/* Sende-Button rechts */}
+            {/* Senden */}
             <button
               onClick={sendMessage}
               disabled={!isReadyToSend}
               className={
-                "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full transition " +
+                "absolute right-2 top-1/2 -translate-y-1/2 " +
+                "w-10 h-10 flex items-center justify-center rounded-full transition " +
                 (isReadyToSend
                   ? "bg-[#98C73C] text-white hover:bg-[#7da32f] cursor-pointer"
                   : "bg-[#cfe5a9] text-white cursor-default")
@@ -111,7 +145,7 @@ export default function ChatbotStart() {
           </div>
         </div>
 
-        {/* Hinweistext unter der Box */}
+        {/* Hinweis */}
         <p className="mt-2 text-xs text-center text-gray-500">
           UNIAGENT kann Fehler machen. Überprüfe wichtige Informationen.
         </p>
@@ -122,6 +156,7 @@ export default function ChatbotStart() {
         {categories.map((cat) => (
           <button
             key={cat}
+            onClick={() => setInput(cat)}
             className="px-4 py-2 rounded-full bg-white/80 hover:bg-white shadow-sm border border-gray-200
                        text-gray-700 transition whitespace-nowrap"
           >
