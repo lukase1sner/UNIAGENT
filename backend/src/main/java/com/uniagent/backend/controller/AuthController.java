@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/controller/AuthController.java
 package com.uniagent.backend.controller;
 
 import com.uniagent.backend.dto.LoginRequest;
@@ -15,12 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(
-        origins = "http://localhost:5173",
-        allowedHeaders = "*",
-        exposedHeaders = "*",
-        methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS }
-)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -54,7 +47,9 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<ChangePasswordResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<ChangePasswordResponse> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
         ChangePasswordResponse response = authService.changePassword(request);
 
         if (response.isSuccess()) {
@@ -88,7 +83,8 @@ public class AuthController {
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
-            if ("Ungültiger Token.".equals(response.getMessage()) || "Token fehlt.".equals(response.getMessage())) {
+            if ("Ungültiger Token.".equals(response.getMessage())
+                    || "Token fehlt.".equals(response.getMessage())) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
