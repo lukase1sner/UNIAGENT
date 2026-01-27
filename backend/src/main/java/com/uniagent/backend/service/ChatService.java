@@ -19,10 +19,15 @@ public class ChatService {
 
     private UUID requireAuthUserId(String token) {
         var user = supabaseAuthClient.getUserFromAccessToken(token);
-        if (user == null || user.getId() == null || user.getId().isBlank()) {
+
+        // ✅ record accessors: user.id() statt user.getId()
+        String id = (user == null) ? null : user.id();
+
+        if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Ungültiger Token.");
         }
-        return UUID.fromString(user.getId());
+
+        return UUID.fromString(id);
     }
 
     public CreateChatResponse createChat(String token, CreateChatRequest request) {
