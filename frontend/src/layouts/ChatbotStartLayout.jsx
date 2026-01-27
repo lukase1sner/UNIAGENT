@@ -1,40 +1,40 @@
 // src/layouts/ChatbotStartLayout.jsx
-import React, { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL as ENV_API_BASE_URL } from "../config";
 
 export default function ChatbotStartLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Chats / UI
+  // Chats
   const [chats, setChats] = useState([]);
-  const [activeChatId, setActiveChatId] = useState(null);
   const [loadingChats, setLoadingChats] = useState(false);
 
-  // Search Modal
+  // Search modal
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
 
-  // Delete Menu
-  const [menuChatId, setMenuChatId] = useState(null);
+  // 3-dots menu
+  const [menuOpenFor, setMenuOpenFor] = useState(null);
+  const menuRef = useRef(null);
+
+  // Delete modal
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteChatId, setDeleteChatId] = useState(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const API_BASE_URL = (ENV_API_BASE_URL && String(ENV_API_BASE_URL).trim()) || "";
 
-  // --------------------------------------------------
-  // User aus LocalStorage laden
-  // --------------------------------------------------
+  // ---------------------------------------------
+  // User & Token
+  // ---------------------------------------------
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setCurrentUser(parsed);
-      }
+      if (stored) setCurrentUser(JSON.parse(stored));
     } catch (e) {
       console.warn("Konnte gespeicherten User nicht lesen:", e);
     }
@@ -57,23 +57,46 @@ export default function ChatbotStartLayout() {
 
   const getInitials = (user) => {
     if (!user) return "ME";
-    const f = user.firstName?.trim()?.charAt(0) || "";
-    const l = user.lastName?.trim()?.charAt(0) || "";
+    const f =
+      user.firstName?.trim()?.charAt(0) ||
+      user.first_name?.trim()?.charAt(0) ||
+      "";
+    const l =
+      user.lastName?.trim()?.charAt(0) ||
+      user.last_name?.trim()?.charAt(0) ||
+      "";
     const initials = (f + l).toUpperCase();
     return initials || "ME";
   };
 
   const getFullName = (user) => {
     if (!user) return "Benutzer";
-    const parts = [user.firstName, user.lastName].filter(Boolean);
+    const first = user.firstName || user.first_name || "";
+    const last = user.lastName || user.last_name || "";
+    const parts = [first, last].filter(Boolean);
     return parts.join(" ") || "Benutzer";
   };
 
-  // --------------------------------------------------
+  // ---------------------------------------------
+  // Aktiver Chat: state + fallback sessionStorage
+  // (Start-Seite: kann trotzdem einen "aktuellen" Chat haben)
+  // ---------------------------------------------
+  const [activeChatId, setActiveChatId] = useState(() => {
+    return sessionStorage.getItem("uniagentActiveChatId") || null;
+  });
+
+  useEffect(() => {
+    const cid = location.state?.chatId;
+    if (cid) {
+      setActiveChatId(cid);
+      sessionStorage.setItem("uniagentActiveChatId", cid);
+    }
+  }, [location.state?.chatId]);
+
+  // ---------------------------------------------
   // Chats laden (TOKEN-BASIERT)
   // GET /api/chats
-  // -> List<ChatSummaryDto>
-  // --------------------------------------------------
+  // ---------------------------------------------
   const loadChats = async () => {
     const token = getToken();
     if (!token) {
@@ -90,9 +113,7 @@ export default function ChatbotStartLayout() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/chats`, {
         method: "GET",
-        headers: {
-          ...authHeaders(),
-        },
+        headers: { ...authHeaders() },
       });
 
       if (!res.ok) {
@@ -101,30 +122,41 @@ export default function ChatbotStartLayout() {
       }
 
       const data = await res.json().catch(() => null);
-
-      // robust: falls Backend wrapped antwortet
       const list = Array.isArray(data)
         ? data
         : Array.isArray(data?.chats)
         ? data.chats
         : [];
 
-      setChats(list);
+      const normalized = list
+        .map((c) => ({
+          id: c.id || c.chatId,
+          title: c.title || "Neuer Chat",
+          createdAt: c.createdAt || c.created_at || null,
+          updatedAt: c.updatedAt || c.updated_at || null,
+        }))
+        .filter((c) => Boolean(c.id));
+
+      normalized.sort((a, b) => {
+        const ad = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const bd = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return bd - ad;
+      });
+
+      setChats(normalized);
     } catch (e) {
-      console.error("Chats laden fehlgeschlagen:", e);
+      console.error("Chats laden Fehler:", e);
       setChats([]);
     } finally {
       setLoadingChats(false);
     }
   };
 
-  // initial load
   useEffect(() => {
     loadChats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.token]);
+  }, [currentUser?.token, API_BASE_URL]);
 
-  // reload when tab refocuses
   useEffect(() => {
     const onFocus = () => loadChats();
     window.addEventListener("focus", onFocus);
@@ -132,7 +164,6 @@ export default function ChatbotStartLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // reload when Chatbot.jsx signals something changed
   useEffect(() => {
     const onChanged = () => loadChats();
     window.addEventListener("uniagent:chatsChanged", onChanged);
@@ -140,12 +171,21 @@ export default function ChatbotStartLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --------------------------------------------------
-  // Neuer Chat (TOKEN-BASIERT)
-  // POST /api/chats
-  // Body: { title }
-  // -> { id | chatId }
-  // --------------------------------------------------
+  // ---------------------------------------------
+  // Click-outside: 3-Punkte Menü schließen
+  // ---------------------------------------------
+  useEffect(() => {
+    const onDown = (e) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target)) setMenuOpenFor(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  // ---------------------------------------------
+  // Actions
+  // ---------------------------------------------
   const handleNewChat = async () => {
     const token = getToken();
     if (!token) {
@@ -156,6 +196,10 @@ export default function ChatbotStartLayout() {
       alert("API_BASE_URL fehlt (VITE_API_BASE_URL).");
       return;
     }
+
+    setMenuOpenFor(null);
+    setSearchOpen(false);
+    setSearchValue("");
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/chats`, {
@@ -177,42 +221,55 @@ export default function ChatbotStartLayout() {
       if (!id) throw new Error("Backend hat keine Chat-ID zurückgegeben.");
 
       setActiveChatId(id);
-      navigate("/chat", { state: { chatId: id } });
+      sessionStorage.setItem("uniagentActiveChatId", id);
 
-      await loadChats();
+      // Sidebar refresh
+      window.dispatchEvent(new Event("uniagent:chatsChanged"));
+
+      navigate("/chat", { state: { chatId: id } });
     } catch (e) {
       console.error("Neuer Chat fehlgeschlagen:", e);
       alert("Neuer Chat konnte nicht erstellt werden.");
     }
   };
 
-  // --------------------------------------------------
-  // Chat öffnen
-  // --------------------------------------------------
   const openChat = (chatId) => {
     if (!chatId) return;
+    setMenuOpenFor(null);
+    setSearchOpen(false);
+    setSearchValue("");
     setActiveChatId(chatId);
-    setMenuChatId(null);
+    sessionStorage.setItem("uniagentActiveChatId", chatId);
     navigate("/chat", { state: { chatId } });
   };
 
-  // --------------------------------------------------
-  // Chat löschen (TOKEN-BASIERT)
-  // DELETE /api/chats/{chatId}
-  // --------------------------------------------------
-  const deleteChat = async (chatId) => {
-    const token = getToken();
-    if (!token) return;
+  // Delete: Modal öffnen
+  const requestDeleteChat = (chatId) => {
+    if (!chatId) return;
+    setMenuOpenFor(null);
+    setDeleteChatId(chatId);
+    setDeleteOpen(true);
+  };
 
-    const ok = window.confirm("Diesen Chat wirklich löschen?");
-    if (!ok) return;
+  // Delete: wirklich löschen (ohne confirm popup)
+  const confirmDeleteChat = async () => {
+    const chatId = deleteChatId;
+    const token = getToken();
+    if (!token || !chatId) {
+      setDeleteOpen(false);
+      setDeleteChatId(null);
+      return;
+    }
+
+    setDeleteOpen(false);
+
+    // Optimistic UI
+    setChats((prev) => prev.filter((c) => c.id !== chatId));
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
         method: "DELETE",
-        headers: {
-          ...authHeaders(),
-        },
+        headers: { ...authHeaders() },
       });
 
       if (!res.ok) {
@@ -220,110 +277,41 @@ export default function ChatbotStartLayout() {
         throw new Error(`HTTP ${res.status} ${t}`);
       }
 
-      setMenuChatId(null);
-
+      // Wenn aktiver Chat gelöscht: active reset (Start bleibt Start)
       if (activeChatId === chatId) {
         setActiveChatId(null);
-        navigate("/chat-start");
+        sessionStorage.removeItem("uniagentActiveChatId");
       }
 
-      await loadChats();
+      window.dispatchEvent(new Event("uniagent:chatsChanged"));
+      loadChats();
     } catch (e) {
-      console.error("Chat löschen fehlgeschlagen:", e);
-      alert("Chat konnte nicht gelöscht werden.");
+      console.error("Chat löschen Fehler:", e);
+      loadChats();
+    } finally {
+      setDeleteChatId(null);
     }
   };
 
-  // --------------------------------------------------
-  // Search Modal (TOKEN-BASIERT)
-  // GET /api/chats/search?q=...
-  // --------------------------------------------------
-  const openSearch = () => {
-    setSearchOpen(true);
-    setSearchValue("");
-    setSearchResults([]);
-    setSearchLoading(false);
-    setMenuChatId(null);
-  };
+  // ---------------------------------------------
+  // Suche: Frontend-Filter (wie ChatbotLayout)
+  // ---------------------------------------------
+  const filteredChats = useMemo(() => {
+    const q = searchValue.trim().toLowerCase();
+    if (!q) return chats;
+    return chats.filter((c) => (c.title || "").toLowerCase().includes(q));
+  }, [chats, searchValue]);
 
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setSearchValue("");
-    setSearchResults([]);
-    setSearchLoading(false);
-  };
+  // ---------------------------------------------
+  // "Aktuell" Label
+  // ---------------------------------------------
+  const hasActive = Boolean(activeChatId);
+  const activeIndex = hasActive ? chats.findIndex((c) => c.id === activeChatId) : -1;
+  const showAktuellLabel = hasActive && activeIndex >= 0;
 
-  useEffect(() => {
-    if (!searchOpen) return;
-
-    const q = searchValue.trim();
-    const token = getToken();
-
-    // ✅ wichtig: nicht gegen Frontend fetchen, wenn API_BASE_URL fehlt
-    if (!API_BASE_URL || !q || !token) {
-      setSearchResults([]);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const t = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/chats/search?q=${encodeURIComponent(q)}`,
-          {
-            method: "GET",
-            headers: {
-              ...authHeaders(),
-            },
-            signal: controller.signal,
-          }
-        );
-
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          throw new Error(`HTTP ${res.status} ${txt}`);
-        }
-
-        const data = await res.json().catch(() => null);
-        const list = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.results)
-          ? data.results
-          : [];
-
-        setSearchResults(list);
-      } catch (e) {
-        if (e?.name !== "AbortError") {
-          console.error("Chat-Suche fehlgeschlagen:", e);
-        }
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 220);
-
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [searchValue, searchOpen, API_BASE_URL]);
-
-  // Outside click für 3-Punkte Menü
-  useEffect(() => {
-    const onDown = (e) => {
-      const el = e.target;
-      if (!(el instanceof HTMLElement)) return;
-      if (el.closest("[data-chat-menu-btn='1']")) return;
-      if (el.closest("[data-chat-menu='1']")) return;
-      setMenuChatId(null);
-    };
-
-    window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
-  }, []);
-
+  // ---------------------------------------------
+  // UI
+  // ---------------------------------------------
   return (
     <div
       className="w-screen h-screen flex"
@@ -332,7 +320,7 @@ export default function ChatbotStartLayout() {
           "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
       }}
     >
-      {/* Sidebar */}
+      {/* Sidebar (1:1 wie ChatbotLayout) */}
       <aside
         className={`${
           collapsed ? "w-20" : "w-72"
@@ -352,35 +340,32 @@ export default function ChatbotStartLayout() {
 
               <button
                 onClick={() => setCollapsed(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
                 title="Sidebar öffnen"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[24px]">
-                  menu
-                </span>
+                <span className="material-symbols-outlined text-[24px]">menu</span>
               </button>
 
               <button
                 title="Neuer Chat"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
-                type="button"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 onClick={handleNewChat}
+                type="button"
               >
-                <span className="material-symbols-outlined text-[24px]">
-                  add_2
-                </span>
+                <span className="material-symbols-outlined text-[24px]">add_2</span>
               </button>
 
               <button
                 title="Chats suchen"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
+                onClick={() => {
+                  setSearchOpen(true);
+                  setSearchValue("");
+                }}
                 type="button"
-                onClick={openSearch}
               >
-                <span className="material-symbols-outlined text-[24px]">
-                  search
-                </span>
+                <span className="material-symbols-outlined text-[24px]">search</span>
               </button>
             </div>
 
@@ -395,239 +380,270 @@ export default function ChatbotStartLayout() {
           </div>
         ) : (
           <>
+            {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <button
                 type="button"
                 onClick={() => navigate("/chat-start")}
-                className="flex items-center gap-3 cursor-pointer select-none"
-                title="Zur Startseite"
+                className="flex items-center gap-3 cursor-pointer"
+                title="Zur Chat-Startseite"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
                   🎓
                 </div>
-                <span className="text-xl font-semibold tracking-tight">
-                  UNIAGENT
-                </span>
+                <span className="text-xl font-semibold tracking-tight">UNIAGENT</span>
               </button>
 
               <button
                 onClick={() => setCollapsed(true)}
                 title="Sidebar einklappen"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[22px]">
-                  menu
-                </span>
+                <span className="material-symbols-outlined text-[22px]">menu</span>
               </button>
             </div>
 
+            {/* Actions */}
             <nav className="flex flex-col gap-4 flex-1">
               <button
-                type="button"
-                onClick={handleNewChat}
                 className="flex items-center gap-3 px-4 py-2 bg-white hover:bg-gray-100 rounded-xl transition text-gray-700 cursor-pointer"
+                onClick={handleNewChat}
+                type="button"
               >
-                <span className="material-symbols-outlined text-[22px]">
-                  add_2
-                </span>
+                <span className="material-symbols-outlined text-[22px]">add_2</span>
                 Neuer Chat
               </button>
 
               <button
-                type="button"
-                onClick={openSearch}
                 className="flex items-center gap-3 px-4 py-2 bg-white hover:bg-gray-100 rounded-xl transition text-gray-700 cursor-pointer"
+                onClick={() => {
+                  setSearchOpen(true);
+                  setSearchValue("");
+                }}
+                type="button"
               >
-                <span className="material-symbols-outlined text-[22px]">
-                  search
-                </span>
+                <span className="material-symbols-outlined text-[22px]">search</span>
                 Chats suchen
               </button>
 
+              {/* Deine Chats */}
               <div className="mt-4">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                  Deine Chats
-                </h3>
+                <h3 className="text-sm font-semibold text-gray-600 mb-2">Deine Chats</h3>
 
                 <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-2">
                   {loadingChats && (
-                    <div className="text-xs text-gray-600 px-2">Lade Chats…</div>
+                    <div className="text-xs text-gray-600 px-2 py-2">Lade Chats…</div>
                   )}
 
                   {!loadingChats && chats.length === 0 && (
-                    <div className="text-xs text-gray-600 px-2">
-                      Noch keine Chats.
-                    </div>
+                    <div className="text-xs text-gray-600 px-2 py-2">Noch keine Chats.</div>
                   )}
 
-                  {chats.map((c) => {
-                    const isActive = c.id === activeChatId;
+                  {!loadingChats &&
+                    chats.map((c, idx) => {
+                      const active = activeChatId === c.id;
 
-                    return (
-                      <div
-                        key={c.id}
-                        className="relative group"
-                        onMouseLeave={() => setMenuChatId(null)}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => openChat(c.id)}
-                          className={
-                            "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition cursor-pointer " +
-                            (isActive
-                              ? "bg-white text-gray-900"
-                              : "bg-white/80 hover:bg-white text-gray-700")
-                          }
-                        >
-                          <span className="material-symbols-outlined text-[18px]">
-                            chat_bubble
-                          </span>
+                      return (
+                        <React.Fragment key={c.id}>
+                          {showAktuellLabel && idx === activeIndex && (
+                            <div className="px-2 pt-1 pb-1 text-[11px] font-semibold tracking-wide text-gray-600 uppercase">
+                              Aktuell
+                            </div>
+                          )}
 
-                          <span className="flex-1 text-left truncate">
-                            {c.title || "Neuer Chat"}
-                          </span>
-
-                          <button
-                            type="button"
-                            data-chat-menu-btn="1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMenuChatId((prev) =>
-                                prev === c.id ? null : c.id
-                              );
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity
-                                       w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-100"
-                            title="Optionen"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">
-                              more_horiz
-                            </span>
-                          </button>
-                        </button>
-
-                        {menuChatId === c.id && (
                           <div
-                            data-chat-menu="1"
-                            className="absolute right-2 top-10 z-50 w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+                            className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
+                              active ? "bg-gray-200" : "bg-white hover:bg-gray-50"
+                            }`}
                           >
                             <button
                               type="button"
+                              onClick={() => openChat(c.id)}
+                              className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
+                              title={c.title}
+                            >
+                              <span className="material-symbols-outlined text-[18px] text-gray-700">
+                                chat_bubble
+                              </span>
+                              <span className="truncate text-gray-800">{c.title || "Neuer Chat"}</span>
+                            </button>
+
+                            {/* 3 Punkte */}
+                            <button
+                              type="button"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-300 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteChat(c.id);
+                                setMenuOpenFor((prev) => (prev === c.id ? null : c.id));
                               }}
-                              className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                              aria-label="Chat Optionen"
+                              title="Optionen"
                             >
-                              <span className="material-symbols-outlined text-[18px]">
-                                delete
+                              <span className="material-symbols-outlined text-[20px] text-gray-700">
+                                more_horiz
                               </span>
-                              Chat löschen
                             </button>
+
+                            {/* Dropdown */}
+                            {menuOpenFor === c.id && (
+                              <div
+                                ref={menuRef}
+                                className="absolute right-2 top-10 z-50 w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 cursor-pointer"
+                                  onClick={() => requestDeleteChat(c.id)}
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                                  Chat löschen
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        </React.Fragment>
+                      );
+                    })}
                 </div>
               </div>
             </nav>
 
+            {/* User */}
             <div className="mt-6 flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-lg">
                 {getInitials(currentUser)}
               </div>
-              <div className="text-gray-800 font-medium leading-tight">
-                {getFullName(currentUser)}
-              </div>
+              <div className="text-gray-800 font-medium leading-tight">{getFullName(currentUser)}</div>
             </div>
           </>
         )}
       </aside>
 
-      <main className="flex-1 flex flex-col">
+      {/* Content */}
+      <main className="flex-1 flex flex-col relative">
         <Outlet />
       </main>
 
-      {/* SEARCH MODAL */}
+      {/* SEARCH MODAL (1:1 wie ChatbotLayout, ohne unteren "Schließen" Button) */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
+        <div
+          className="fixed inset-0 z-[80] bg-black/35 flex items-center justify-center p-4"
+          onClick={() => setSearchOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <div className="font-semibold text-gray-900">Chats suchen</div>
               <button
                 type="button"
-                onClick={closeSearch}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
-                title="Schließen"
+                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center cursor-pointer"
+                onClick={() => setSearchOpen(false)}
+                aria-label="Schließen"
               >
-                <span className="material-symbols-outlined text-[22px]">
-                  close
-                </span>
+                <span className="material-symbols-outlined text-[22px]">close</span>
               </button>
             </div>
 
-            <div className="p-5">
+            <div className="px-5 py-4">
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   search
                 </span>
                 <input
-                  autoFocus
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  placeholder="Titel oder Inhalt…"
+                  placeholder="Chat-Titel suchen…"
                   className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  autoFocus
                 />
               </div>
 
-              <div className="mt-4 max-h-[52vh] overflow-y-auto">
-                {searchLoading && (
-                  <div className="text-sm text-gray-500 py-3">
-                    Suche läuft…
+              <div className="mt-4 max-h-72 overflow-y-auto">
+                {filteredChats.length === 0 ? (
+                  <div className="text-sm text-gray-500 py-6 text-center">Keine Treffer.</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {filteredChats.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => openChat(c.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-left cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[20px] text-gray-700">
+                          chat_bubble
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 truncate">
+                            {c.title || "Neuer Chat"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {c.updatedAt || c.createdAt
+                              ? new Date(c.updatedAt || c.createdAt).toLocaleString("de-DE")
+                              : ""}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
-
-                {!searchLoading &&
-                  searchValue.trim() &&
-                  searchResults.length === 0 && (
-                    <div className="text-sm text-gray-500 py-3">
-                      Keine Ergebnisse.
-                    </div>
-                  )}
-
-                <div className="flex flex-col gap-2">
-                  {searchResults.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => {
-                        closeSearch();
-                        openChat(r.id);
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition"
-                    >
-                      <div className="font-semibold text-gray-900 truncate">
-                        {r.title || "Chat"}
-                      </div>
-                      {r.snippet && (
-                        <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                          {r.snippet}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-              <div className="mt-5 flex justify-end">
+      {/* DELETE MODAL (wie gewünscht) */}
+      {deleteOpen && (
+        <div
+          className="fixed inset-0 z-[90] bg-black/35 flex items-center justify-center p-4"
+          onClick={() => {
+            setDeleteOpen(false);
+            setDeleteChatId(null);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="font-semibold text-gray-900">Chat löschen?</div>
+              <button
+                type="button"
+                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center cursor-pointer"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteChatId(null);
+                }}
+                aria-label="Schließen"
+              >
+                <span className="material-symbols-outlined text-[22px]">close</span>
+              </button>
+            </div>
+
+            <div className="px-5 py-5">
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={closeSearch}
-                  className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                  onClick={() => {
+                    setDeleteOpen(false);
+                    setDeleteChatId(null);
+                  }}
+                  className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
-                  Schließen
+                  Abbrechen
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteChat}
+                  className="px-4 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:bg-red-700 cursor-pointer"
+                >
+                  Löschen
                 </button>
               </div>
             </div>
