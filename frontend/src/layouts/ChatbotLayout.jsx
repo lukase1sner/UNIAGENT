@@ -15,7 +15,7 @@ export default function ChatbotLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
-  // 3-dots menu
+  // 3-dots menu (pro Chat)
   const [menuOpenFor, setMenuOpenFor] = useState(null);
   const menuRef = useRef(null);
 
@@ -168,26 +168,77 @@ export default function ChatbotLayout() {
 
   // ---------------------------------------------
   // Click-outside: 3-Punkte Menü schließen
+  // Fix: nicht schließen, wenn Klick auf den 3-Punkte-Button selbst
+  // (sonst klappt Menü nur beim "aktuellen", je nach DOM)
   // ---------------------------------------------
   useEffect(() => {
     const onDown = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) setMenuOpenFor(null);
+      const el = e.target;
+      if (!(el instanceof HTMLElement)) return;
+
+      // Klick auf Menü-Button -> nicht schließen (Toggle macht der Button selbst)
+      if (el.closest("[data-chat-menu-btn='1']")) return;
+
+      // Klick ins Menü -> nicht schließen
+      if (el.closest("[data-chat-menu='1']")) return;
+
+      setMenuOpenFor(null);
     };
+
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
   // ---------------------------------------------
   // Actions
+  // Fix: "Neuer Chat" soll direkt neuen Chat anlegen + /chat öffnen
   // ---------------------------------------------
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
+    const token = getToken();
+    if (!token) {
+      alert("Bitte neu einloggen (Token fehlt).");
+      return;
+    }
+    if (!API_BASE_URL) {
+      alert("API_BASE_URL fehlt (VITE_API_BASE_URL).");
+      return;
+    }
+
     setMenuOpenFor(null);
     setSearchOpen(false);
     setSearchValue("");
-    setActiveChatId(null);
-    sessionStorage.removeItem("uniagentActiveChatId");
-    navigate("/chat-start", { replace: false });
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/chats`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify({ title: "Neuer Chat" }),
+      });
+
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status} ${t}`);
+      }
+
+      const data = await res.json().catch(() => ({}));
+      const id = data.id || data.chatId;
+      if (!id) throw new Error("Backend hat keine Chat-ID zurückgegeben.");
+
+      setActiveChatId(id);
+      sessionStorage.setItem("uniagentActiveChatId", id);
+
+      // Liste aktualisieren (damit der neue Chat sofort links auftaucht)
+      loadChats();
+
+      // direkt in den neuen Chat
+      navigate("/chat", { state: { chatId: id } });
+    } catch (e) {
+      console.error("Neuer Chat fehlgeschlagen:", e);
+      alert("Neuer Chat konnte nicht erstellt werden.");
+    }
   };
 
   const openChat = (chatId) => {
@@ -203,6 +254,9 @@ export default function ChatbotLayout() {
   const deleteChat = async (chatId) => {
     const token = getToken();
     if (!token || !chatId) return;
+
+    const ok = window.confirm("Diesen Chat wirklich löschen?");
+    if (!ok) return;
 
     setMenuOpenFor(null);
 
@@ -223,6 +277,7 @@ export default function ChatbotLayout() {
       if (activeChatId === chatId) {
         setActiveChatId(null);
         sessionStorage.removeItem("uniagentActiveChatId");
+        // optional: nach löschen vom aktuellen in einen leeren Screen
         navigate("/chat-start");
       }
 
@@ -243,7 +298,7 @@ export default function ChatbotLayout() {
   }, [chats, searchValue]);
 
   // ---------------------------------------------
-  // "Aktuell" Label nur einmal anzeigen (vor erstem aktiven Chat)
+  // "Aktuell" Label nur einmal anzeigen
   // ---------------------------------------------
   const hasActive = Boolean(activeChatId);
   const activeIndex = hasActive ? chats.findIndex((c) => c.id === activeChatId) : -1;
@@ -411,9 +466,7 @@ export default function ChatbotLayout() {
 
                           <div
                             className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                              active
-                                ? "bg-gray-200" // ✅ dunkler als vorher
-                                : "bg-white hover:bg-gray-50"
+                              active ? "bg-gray-200" : "bg-white hover:bg-gray-50"
                             }`}
                           >
                             <button
@@ -433,12 +486,11 @@ export default function ChatbotLayout() {
                             {/* 3 Punkte (nur auf Hover sichtbar) */}
                             <button
                               type="button"
+                              data-chat-menu-btn="1"
                               className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-300 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setMenuOpenFor((prev) =>
-                                  prev === c.id ? null : c.id
-                                );
+                                setMenuOpenFor((prev) => (prev === c.id ? null : c.id));
                               }}
                               aria-label="Chat Optionen"
                               title="Optionen"
@@ -451,6 +503,7 @@ export default function ChatbotLayout() {
                             {/* Dropdown */}
                             {menuOpenFor === c.id && (
                               <div
+                                data-chat-menu="1"
                                 ref={menuRef}
                                 className="absolute right-2 top-10 z-50 w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
                                 onClick={(e) => e.stopPropagation()}
@@ -564,15 +617,7 @@ export default function ChatbotLayout() {
                 )}
               </div>
 
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setSearchOpen(false)}
-                  className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium hover:bg-gray-50 cursor-pointer"
-                >
-                  Schließen
-                </button>
-              </div>
+              {/* ✅ Fix: unteren "Schließen" Button entfernen (oben rechts X reicht) */}
             </div>
           </div>
         </div>
