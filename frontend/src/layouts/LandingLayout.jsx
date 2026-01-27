@@ -8,10 +8,8 @@ export default function LandingLayout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-
       {/* Navbar */}
       <header className="w-full py-6 px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
-
         {/* UNIAGENT Logo – wie Register & Chatbot */}
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
@@ -31,34 +29,46 @@ export default function LandingLayout({ children }) {
           >
             Startseite
           </a>
-          <a href="#funktionen" className="hover:text-black transition">Funktionen</a>
-          <a href="#kontakt" className="hover:text-black transition">Kontakt</a>
+          <a href="#funktionen" className="hover:text-black transition">
+            Funktionen
+          </a>
+          <a href="#kontakt" className="hover:text-black transition">
+            Kontakt
+          </a>
         </nav>
 
         {/* Anmelden Button → führt korrekt zu /login */}
         <button
           onClick={() => navigate("/login")}
-          className="px-5 py-2 rounded-full border border-black font-medium
+          className="flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
                      hover:bg-black hover:text-white transition cursor-pointer"
         >
+          <span className="material-symbols-outlined text-[20px] leading-none">
+            login
+          </span>
           Anmelden
         </button>
       </header>
 
       {/* Page Content */}
-      <main className="flex-1">
-        {children}
-      </main>
+      <main className="flex-1">{children}</main>
 
       {/* FOOTER – identisch zum Dashboard-Footer */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
-
         {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
-          <a href="#funktionen" className="hover:text-gray-800 transition">Funktionen</a>
-          <a href="#kontakt" className="hover:text-gray-800 transition">Kontakt</a>
-          <a href="/impressum" className="hover:text-gray-800 transition">Impressum</a>
-          <a href="/datenschutz" className="hover:text-gray-800 transition">Datenschutz</a>
+          <a href="#funktionen" className="hover:text-gray-800 transition">
+            Funktionen
+          </a>
+          <a href="#kontakt" className="hover:text-gray-800 transition">
+            Kontakt
+          </a>
+          <a href="/impressum" className="hover:text-gray-800 transition">
+            Impressum
+          </a>
+          <a href="/datenschutz" className="hover:text-gray-800 transition">
+            Datenschutz
+          </a>
 
           <span className="font-medium pt-2">
             © {new Date().getFullYear()} UNIAGENT
@@ -67,17 +77,36 @@ export default function LandingLayout({ children }) {
 
         {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
-          <a href="#funktionen" className="hover:text-gray-800 transition cursor-pointer">Funktionen</a>
-          <a href="#kontakt" className="hover:text-gray-800 transition cursor-pointer">Kontakt</a>
-          <a href="/impressum" className="hover:text-gray-800 transition cursor-pointer">Impressum</a>
-          <a href="/datenschutz" className="hover:text-gray-800 transition cursor-pointer">Datenschutz</a>
+          <a
+            href="#funktionen"
+            className="hover:text-gray-800 transition cursor-pointer"
+          >
+            Funktionen
+          </a>
+          <a
+            href="#kontakt"
+            className="hover:text-gray-800 transition cursor-pointer"
+          >
+            Kontakt
+          </a>
+          <a
+            href="/impressum"
+            className="hover:text-gray-800 transition cursor-pointer"
+          >
+            Impressum
+          </a>
+          <a
+            href="/datenschutz"
+            className="hover:text-gray-800 transition cursor-pointer"
+          >
+            Datenschutz
+          </a>
 
           <span className="font-medium">
             © {new Date().getFullYear()} UNIAGENT
           </span>
         </div>
       </footer>
-
     </div>
   );
 }

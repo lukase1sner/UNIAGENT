@@ -8,6 +8,7 @@ export default function MeinBereichLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,10 +17,14 @@ export default function MeinBereichLayout() {
       "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
   };
 
+  // 🔄 User aus LocalStorage laden
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
-      if (stored) setCurrentUser(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setCurrentUser(parsed);
+      }
     } catch (e) {
       console.warn("Konnte gespeicherten User nicht lesen:", e);
     }
@@ -29,7 +34,8 @@ export default function MeinBereichLayout() {
     if (!user) return "ME";
     const f = user.firstName?.trim()?.charAt(0) || "";
     const l = user.lastName?.trim()?.charAt(0) || "";
-    return (f + l).toUpperCase() || "ME";
+    const initials = (f + l).toUpperCase();
+    return initials || "ME";
   };
 
   const getFullName = (user) => {
@@ -45,6 +51,7 @@ export default function MeinBereichLayout() {
     navigate("/login");
   };
 
+  // kleine Helper-Funktion für Navigation (schließt auch das Mobile-Menü)
   const goTo = (path) => {
     setMobileMenuOpen(false);
     navigate(path);
@@ -53,7 +60,7 @@ export default function MeinBereichLayout() {
   // ✅ aktiver Menüpunkt per Route
   const isActive = (path) => location.pathname === path;
 
-  // Mobile Menü-Items (gleiches System wie DashboardLayout)
+  // Mobile Menü-Items
   const mobileItems = [
     { icon: "team_dashboard", label: "Dashboard", path: "/dashboard" },
     { icon: "question_exchange", label: "Häufig gestellte Fragen", path: null },
@@ -66,9 +73,10 @@ export default function MeinBereichLayout() {
     <div className="min-h-screen flex flex-col bg-white">
       {/* HEADER */}
       <header className="w-full py-4 px-4 lg:py-6 lg:px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
+        {/* ✅ Klick führt IMMER zum Dashboard */}
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/dashboard")}
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
             🎓
@@ -77,11 +85,15 @@ export default function MeinBereichLayout() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* ✅ Logout Icon vor Abmelden */}
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="hidden lg:inline-flex px-5 py-2 rounded-full border border-black font-medium
+            className="hidden lg:inline-flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
                        hover:bg-black hover:text-white transition cursor-pointer"
           >
+            <span className="material-symbols-outlined text-[20px] leading-none">
+              logout
+            </span>
             Abmelden
           </button>
 
@@ -95,16 +107,17 @@ export default function MeinBereichLayout() {
         </div>
       </header>
 
-      {/* MOBILE MENU (Fullscreen + neues Design + ohne Avatar/Name) */}
+      {/* MOBILE MENU */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden bg-white/55 backdrop-blur-xl">
           {/* Top bar */}
           <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-white/60">
+            {/* ✅ Auch hier Klick zum Dashboard */}
             <div
               className="flex items-center gap-3 select-none cursor-pointer"
               onClick={() => {
                 setMobileMenuOpen(false);
-                navigate("/");
+                navigate("/dashboard");
               }}
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
@@ -153,9 +166,12 @@ export default function MeinBereichLayout() {
             <div className="mt-auto pt-6">
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="w-full px-4 py-3 rounded-full bg-black text-white font-medium
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-black text-white font-medium
                            hover:bg-[#111] transition cursor-pointer"
               >
+                <span className="material-symbols-outlined text-[20px] leading-none">
+                  logout
+                </span>
                 Abmelden
               </button>
             </div>
@@ -166,8 +182,11 @@ export default function MeinBereichLayout() {
       {/* MAIN */}
       <main className="flex-1 flex flex-col">
         {/* DESKTOP */}
-        <div className="hidden lg:flex flex-1 relative isolate" style={gradientStyle}>
-          {/* SIDEBAR (GLASS + Tooltips vorn) */}
+        <div
+          className="hidden lg:flex flex-1 relative isolate"
+          style={gradientStyle}
+        >
+          {/* SIDEBAR (GLASS) */}
           <aside
             className={`${
               collapsed ? "w-20" : "w-72"
@@ -223,11 +242,20 @@ export default function MeinBereichLayout() {
                   </div>
 
                   {[
-                    ["question_exchange", "Häufig gestellte Fragen", null],
-                    ["link", "Nützliche Links", "/nuetzliche-links"],
-                    ["chat", "Chatbot fragen", "/chat-start"],
-                    ["person", "Mein Bereich", "/mein-bereich"],
-                  ].map(([icon, label, path]) => {
+                    ["question_exchange", "Häufig gestellte Fragen"],
+                    ["link", "Nützliche Links"],
+                    ["chat", "Chatbot fragen"],
+                    ["person", "Mein Bereich"],
+                  ].map(([icon, label]) => {
+                    const path =
+                      label === "Chatbot fragen"
+                        ? "/chat-start"
+                        : label === "Mein Bereich"
+                        ? "/mein-bereich"
+                        : label === "Nützliche Links"
+                        ? "/nuetzliche-links"
+                        : null;
+
                     const active = path ? isActive(path) : false;
 
                     return (
@@ -292,33 +320,32 @@ export default function MeinBereichLayout() {
 
                 <nav className="flex flex-col gap-4 flex-1">
                   {[
-                    ["team_dashboard", "Dashboard", "/dashboard"],
-                    ["question_exchange", "Häufig gestellte Fragen", null],
-                    ["link", "Nützliche Links", "/nuetzliche-links"],
-                    ["chat", "Chatbot fragen", "/chat-start"],
-                    ["person", "Mein Bereich", "/mein-bereich"],
-                  ].map(([icon, label, path]) => {
-                    const active = path ? isActive(path) : false;
-
-                    return (
-                      <button
-                        key={icon}
-                        onClick={() => {
-                          if (path) goTo(path);
-                        }}
-                        className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer font-medium ${
-                          active
-                            ? "bg-[#E4ECD9] hover:bg-[#d6dfc9] text-gray-900"
-                            : "text-gray-700 hover:bg-[#d6dfc9]"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[22px]">
-                          {icon}
-                        </span>
-                        {label}
-                      </button>
-                    );
-                  })}
+                    ["team_dashboard", "Dashboard", isActive("/dashboard")],
+                    ["question_exchange", "Häufig gestellte Fragen", false],
+                    ["link", "Nützliche Links", isActive("/nuetzliche-links")],
+                    ["chat", "Chatbot fragen", isActive("/chat-start")],
+                    ["person", "Mein Bereich", isActive("/mein-bereich")],
+                  ].map(([icon, label, active]) => (
+                    <button
+                      key={icon}
+                      onClick={() => {
+                        if (icon === "team_dashboard") goTo("/dashboard");
+                        if (icon === "chat") goTo("/chat-start");
+                        if (icon === "link") goTo("/nuetzliche-links");
+                        if (icon === "person") goTo("/mein-bereich");
+                      }}
+                      className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer font-medium ${
+                        active
+                          ? "bg-[#E4ECD9] hover:bg-[#d6dfc9] text-gray-900"
+                          : "text-gray-700 hover:bg-[#d6dfc9]"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[22px]">
+                        {icon}
+                      </span>
+                      {label}
+                    </button>
+                  ))}
                 </nav>
 
                 <div className="mt-6 flex items-center gap-3 cursor-pointer">
@@ -348,49 +375,53 @@ export default function MeinBereichLayout() {
 
       {/* FOOTER */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
+        {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
-          <a href="#funktionen" className="hover:text-gray-800 transition">
+          <a href="#funktionen" className="hover:underline underline-offset-4">
             Funktionen
           </a>
-          <a href="#kontakt" className="hover:text-gray-800 transition">
+          <a href="#kontakt" className="hover:underline underline-offset-4">
             Kontakt
           </a>
-          <a href="/impressum" className="hover:text-gray-800 transition">
+          <a href="/impressum" className="hover:underline underline-offset-4">
             Impressum
           </a>
-          <a href="/datenschutz" className="hover:text-gray-800 transition">
+          <a href="/datenschutz" className="hover:underline underline-offset-4">
             Datenschutz
           </a>
+
           <span className="font-medium pt-2">
             © {new Date().getFullYear()} UNIAGENT
           </span>
         </div>
 
+        {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
           <a
             href="#funktionen"
-            className="hover:text-gray-800 transition cursor-pointer"
+            className="hover:underline underline-offset-4 transition cursor-pointer"
           >
             Funktionen
           </a>
           <a
             href="#kontakt"
-            className="hover:text-gray-800 transition cursor-pointer"
+            className="hover:underline underline-offset-4 transition cursor-pointer"
           >
             Kontakt
           </a>
           <a
             href="/impressum"
-            className="hover:text-gray-800 transition cursor-pointer"
+            className="hover:underline underline-offset-4 transition cursor-pointer"
           >
             Impressum
           </a>
           <a
             href="/datenschutz"
-            className="hover:text-gray-800 transition cursor-pointer"
+            className="hover:underline underline-offset-4 transition cursor-pointer"
           >
             Datenschutz
           </a>
+
           <span className="font-medium">
             © {new Date().getFullYear()} UNIAGENT
           </span>

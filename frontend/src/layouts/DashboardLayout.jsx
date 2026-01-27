@@ -85,9 +85,13 @@ export default function DashboardLayout() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="hidden lg:inline-flex px-5 py-2 rounded-full border border-black font-medium
+            className="hidden lg:inline-flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
                        hover:bg-black hover:text-white transition cursor-pointer"
           >
+            {/* ✅ ICON VOR ABMELDEN */}
+            <span className="material-symbols-outlined text-[20px]">
+              logout
+            </span>
             Abmelden
           </button>
 
@@ -125,7 +129,9 @@ export default function DashboardLayout() {
               onClick={() => setMobileMenuOpen(false)}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#d6dfc9] transition cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[24px]">close</span>
+              <span className="material-symbols-outlined text-[24px]">
+                close
+              </span>
             </button>
           </div>
 
@@ -159,9 +165,13 @@ export default function DashboardLayout() {
             <div className="mt-auto pt-6">
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="w-full px-4 py-3 rounded-full bg-black text-white font-medium
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-black text-white font-medium
                            hover:bg-[#111] transition cursor-pointer"
               >
+                {/* ✅ ICON VOR ABMELDEN (MOBILE) */}
+                <span className="material-symbols-outlined text-[20px]">
+                  logout
+                </span>
                 Abmelden
               </button>
             </div>
