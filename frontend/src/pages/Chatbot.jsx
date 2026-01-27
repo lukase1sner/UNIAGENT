@@ -1,4 +1,3 @@
-// src/pages/Chatbot.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { N8N_WEBHOOK_URL as ENV_N8N_WEBHOOK_URL } from "../config";
@@ -74,7 +73,6 @@ export default function Chatbot() {
         }),
       });
 
-      // ✅ 405 sauber erklären
       if (response.status === 405) {
         throw new Error(
           "HTTP 405 (Method Not Allowed). Du triffst wahrscheinlich nicht den richtigen n8n Webhook oder der Webhook ist nicht auf POST eingestellt."
@@ -97,9 +95,9 @@ export default function Chatbot() {
       const extracted = extractBotText(data);
       if (extracted) botText = extracted;
 
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
-      }, 50);
+      // Sofortige Anzeige der Nachricht + schnellerer Delay
+      setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
+
     } catch (error) {
       console.error("Fehler beim Abrufen der Antwort:", error);
 
@@ -108,9 +106,8 @@ export default function Chatbot() {
           ? "Fehler 405: Dein n8n Endpoint akzeptiert kein POST. Prüfe: VITE_N8N_WEBHOOK_URL in Vercel + Webhook Node Method=POST."
           : "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.";
 
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
-      }, 50);
+      setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
+
     } finally {
       setIsLoading(false);
     }
@@ -150,9 +147,9 @@ export default function Chatbot() {
           <div className="flex justify-start">
             <div className="px-4 py-3 rounded-xl bg-gray-200 text-gray-800">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "0.6s" }} />
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "60ms", animationDuration: "0.6s" }} />
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "120ms", animationDuration: "0.6s" }} />
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "0.3s" }} />
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "50ms", animationDuration: "0.3s" }} />
+                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "100ms", animationDuration: "0.3s" }} />
               </div>
             </div>
           </div>
