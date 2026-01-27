@@ -1,7 +1,7 @@
 // src/layouts/ChatbotLayout.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL as ENV_API_BASE_URL } from "../config";
 
 export default function ChatbotLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -22,20 +22,34 @@ export default function ChatbotLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const API_BASE_URL = (ENV_API_BASE_URL && String(ENV_API_BASE_URL).trim()) || "";
+
   // ---------------------------------------------
-  // User aus LocalStorage laden
+  // User & Token
   // ---------------------------------------------
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setCurrentUser(parsed);
-      }
+      if (stored) setCurrentUser(JSON.parse(stored));
     } catch (e) {
       console.warn("Konnte gespeicherten User nicht lesen:", e);
     }
   }, []);
+
+  const getToken = () => {
+    try {
+      const raw = localStorage.getItem("uniagentUser");
+      const u = raw ? JSON.parse(raw) : null;
+      return u?.token || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const authHeaders = () => {
+    const token = getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   const getInitials = (user) => {
     if (!user) return "ME";
@@ -60,35 +74,59 @@ export default function ChatbotLayout() {
   };
 
   // ---------------------------------------------
-  // Aktiver Chat (optional via location.state.chatId)
+  // Aktiver Chat: aus navigation state + fallback via sessionStorage
+  // (weil location.state nach Reload leer sein kann)
   // ---------------------------------------------
-  const activeChatId = location.state?.chatId || null;
+  const [activeChatId, setActiveChatId] = useState(() => {
+    return sessionStorage.getItem("uniagentActiveChatId") || null;
+  });
+
+  useEffect(() => {
+    const cid = location.state?.chatId;
+    if (cid) {
+      setActiveChatId(cid);
+      sessionStorage.setItem("uniagentActiveChatId", cid);
+    }
+  }, [location.state?.chatId]);
 
   // ---------------------------------------------
-  // Chats laden
-  // Erwartet Backend:
-  // GET  /api/chats?userId=<uuid>
-  // -> [{ id, title, updatedAt, createdAt }]
+  // Chats laden (TOKEN-BASIERT)
+  // GET /api/chats
+  // -> List<ChatSummaryDto>
   // ---------------------------------------------
   const loadChats = async () => {
-    if (!currentUser?.id) return;
+    const token = getToken();
+    if (!token) {
+      setChats([]);
+      return;
+    }
+    if (!API_BASE_URL) {
+      console.error("API_BASE_URL fehlt. Prüfe VITE_API_BASE_URL in Vercel.");
+      setChats([]);
+      return;
+    }
 
     setLoadingChats(true);
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/chats?userId=${encodeURIComponent(currentUser.id)}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const res = await fetch(`${API_BASE_URL}/api/chats`, {
+        method: "GET",
+        headers: { ...authHeaders() },
+      });
 
-      const normalized = Array.isArray(data)
-        ? data.map((c) => ({
-            id: c.id,
-            title: c.title || "Neuer Chat",
-            createdAt: c.createdAt || c.created_at || null,
-            updatedAt: c.updatedAt || c.updated_at || null,
-          }))
-        : [];
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status} ${t}`);
+      }
+
+      const data = await res.json().catch(() => null);
+      const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
+
+      const normalized = list.map((c) => ({
+        id: c.id || c.chatId,
+        title: c.title || "Neuer Chat",
+        createdAt: c.createdAt || c.created_at || null,
+        updatedAt: c.updatedAt || c.updated_at || null,
+      })).filter((c) => Boolean(c.id));
 
       // Sort: zuletzt aktiv oben
       normalized.sort((a, b) => {
@@ -106,10 +144,27 @@ export default function ChatbotLayout() {
     }
   };
 
+  // initial load + when token changes
   useEffect(() => {
     loadChats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id]);
+  }, [currentUser?.token, API_BASE_URL]);
+
+  // reload on focus
+  useEffect(() => {
+    const onFocus = () => loadChats();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // reload when Chatbot.jsx signals something changed
+  useEffect(() => {
+    const onChanged = () => loadChats();
+    window.addEventListener("uniagent:chatsChanged", onChanged);
+    return () => window.removeEventListener("uniagent:chatsChanged", onChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------
   // Click-outside: 3-Punkte Menü schließen
@@ -124,34 +179,38 @@ export default function ChatbotLayout() {
   }, []);
 
   // ---------------------------------------------
-  // Neuer Chat
-  // -> geht auf Start-Seite (oder /chat mit state)
+  // Neuer Chat -> Startseite
   // ---------------------------------------------
   const handleNewChat = () => {
     setMenuOpenFor(null);
     setSearchOpen(false);
     setSearchValue("");
+    setActiveChatId(null);
+    sessionStorage.removeItem("uniagentActiveChatId");
     navigate("/chat-start", { replace: false });
   };
 
   // ---------------------------------------------
   // Chat öffnen
-  // -> /chat mit chatId (Chatbot.jsx kann später damit Messages laden)
   // ---------------------------------------------
   const openChat = (chatId) => {
+    if (!chatId) return;
     setMenuOpenFor(null);
     setSearchOpen(false);
     setSearchValue("");
+    setActiveChatId(chatId);
+    sessionStorage.setItem("uniagentActiveChatId", chatId);
     navigate("/chat", { state: { chatId } });
   };
 
   // ---------------------------------------------
-  // Chat löschen
-  // Erwartet Backend:
+  // Chat löschen (TOKEN-BASIERT)
   // DELETE /api/chats/{chatId}
   // ---------------------------------------------
   const deleteChat = async (chatId) => {
-    if (!chatId) return;
+    const token = getToken();
+    if (!token || !chatId) return;
+
     setMenuOpenFor(null);
 
     // Optimistic UI
@@ -160,11 +219,23 @@ export default function ChatbotLayout() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
         method: "DELETE",
+        headers: { ...authHeaders() },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status} ${t}`);
+      }
 
       // Wenn gerade aktiver Chat gelöscht: auf Start
-      if (activeChatId === chatId) navigate("/chat-start");
+      if (activeChatId === chatId) {
+        setActiveChatId(null);
+        sessionStorage.removeItem("uniagentActiveChatId");
+        navigate("/chat-start");
+      }
+
+      // Sidebar aktualisieren
+      loadChats();
     } catch (e) {
       console.error("Chat löschen Fehler:", e);
       // Reload zur Sicherheit
@@ -173,7 +244,7 @@ export default function ChatbotLayout() {
   };
 
   // ---------------------------------------------
-  // Suche (Frontend-Filter, Backend-Search optional später)
+  // Suche: im Modal nur Frontend-Filter (schnell & robust)
   // ---------------------------------------------
   const filteredChats = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
@@ -342,7 +413,7 @@ export default function ChatbotLayout() {
                           key={c.id}
                           className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
                             active
-                              ? "bg-white shadow-sm"
+                              ? "bg-white shadow-sm ring-2 ring-[#98C73C]/30"
                               : "bg-white/80 hover:bg-white"
                           }`}
                         >
@@ -366,7 +437,9 @@ export default function ChatbotLayout() {
                             className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setMenuOpenFor((prev) => (prev === c.id ? null : c.id));
+                              setMenuOpenFor((prev) =>
+                                prev === c.id ? null : c.id
+                              );
                             }}
                             aria-label="Chat Optionen"
                             title="Optionen"
