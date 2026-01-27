@@ -7,7 +7,7 @@ import {
 } from "../config";
 
 export default function Chatbot() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]); // [{ sender: "user"|"bot", text }]
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,7 +16,6 @@ export default function Chatbot() {
   const initialHandledRef = useRef(false);
   const sessionIdRef = useRef("session-" + Date.now());
   const chatIdRef = useRef(null);
-
   const bottomRef = useRef(null);
 
   // -----------------------------
@@ -89,6 +88,78 @@ export default function Chatbot() {
   };
 
   // -----------------------------
+  // Backend: Messages laden (WICHTIG!)
+  // GET /api/chats/{chatId}/messages
+  // -> [{ sender, content, createdAt ... }]
+  // -----------------------------
+  const loadMessages = async (chatId) => {
+    const token = getToken();
+    if (!token || !API_BASE_URL || !chatId) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}/messages`, {
+        method: "GET",
+        headers: { ...authHeaders() },
+      });
+
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status} ${t}`);
+      }
+
+      const data = await res.json().catch(() => null);
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.messages)
+        ? data.messages
+        : [];
+
+      // Normalisieren -> dein UI erwartet { sender, text }
+      const normalized = list
+        .map((m) => ({
+          sender: (m.sender || m.role || "").toLowerCase() === "bot" ? "bot" : "user",
+          text: m.content ?? m.text ?? m.message ?? "",
+          createdAt: m.createdAt || m.created_at || null,
+        }))
+        .filter((m) => String(m.text || "").trim().length > 0);
+
+      // Optional sortieren nach Datum
+      normalized.sort((a, b) => {
+        const ad = new Date(a.createdAt || 0).getTime();
+        const bd = new Date(b.createdAt || 0).getTime();
+        return ad - bd;
+      });
+
+      setMessages(normalized);
+    } catch (e) {
+      console.error("Messages laden fehlgeschlagen:", e);
+      // nicht komplett leeren, aber typischerweise willst du leeren:
+      setMessages([]);
+    }
+  };
+
+  // -----------------------------
+  // Chat-Wechsel: chatId übernehmen + Messages laden
+  // -----------------------------
+  useEffect(() => {
+    const cid = location.state?.chatId || null;
+
+    // Wenn ein Chat gewählt wurde: ref setzen + UI reset + aus DB laden
+    if (cid) {
+      chatIdRef.current = cid;
+      initialHandledRef.current = true; // initial message nicht nochmal schicken
+      setIsLoading(false);
+      setInput("");
+      setMessages([]); // kurz leeren (optional)
+      loadMessages(cid);
+      return;
+    }
+
+    // Wenn kein cid übergeben wurde, lass es (z.B. Startseite /chat ohne state)
+    // initialHandledRef NICHT pauschal resetten, sonst spammst du initialUserMessage.
+  }, [location.state?.chatId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // -----------------------------
   // Backend: Chat erstellen (einmalig)
   // POST /api/chats  (Authorization: Bearer <token>)
   // Body: { title? }
@@ -131,7 +202,7 @@ export default function Chatbot() {
 
     chatIdRef.current = id;
 
-    // Sidebar/Layouts informieren, dass Chats neu geladen werden sollen
+    // Sidebar/Layouts informieren
     window.dispatchEvent(new Event("uniagent:chatsChanged"));
 
     return id;
@@ -143,7 +214,7 @@ export default function Chatbot() {
   // Body: { sender, content }
   // -----------------------------
   const saveMessage = async (chatId, sender, content) => {
-    if (!chatId) return;
+    if (!chatId || !API_BASE_URL) return;
 
     const token = getToken();
     if (!token) return;
@@ -162,7 +233,7 @@ export default function Chatbot() {
         const t = await res.text().catch(() => "");
         console.warn("saveMessage failed:", res.status, t);
       } else {
-        // optional: nach message speichern Chats refreshen (updatedAt/titel)
+        // updatedAt/titel etc.
         window.dispatchEvent(new Event("uniagent:chatsChanged"));
       }
     } catch (e) {
@@ -187,11 +258,10 @@ export default function Chatbot() {
         throw new Error("N8N_WEBHOOK_URL fehlt (VITE_N8N_WEBHOOK_URL).");
       }
 
-      // Chat im Backend anlegen (wenn nötig) + User msg speichern
+      // Chat anlegen (wenn nötig) + User msg speichern
       chatIdForThisMessage = await createChatIfNeeded(trimmed);
       await saveMessage(chatIdForThisMessage, "user", trimmed);
 
-      // n8n call
       const res = await fetch(N8N_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -201,13 +271,10 @@ export default function Chatbot() {
         }),
       });
 
-      // typische Fehler sauber melden
       if (res.status === 405) {
         const raw405 = await res.text().catch(() => "");
         console.error("n8n 405 raw:", raw405);
-        throw new Error(
-          "n8n HTTP 405 (Method Not Allowed) – falsche URL oder Webhook nicht POST."
-        );
+        throw new Error("n8n HTTP 405 (Method Not Allowed)");
       }
 
       if (!res.ok) {
@@ -239,7 +306,6 @@ export default function Chatbot() {
 
       setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
 
-      // Fehler speichern, wenn Chat existiert
       const cid = chatIdForThisMessage || chatIdRef.current;
       if (cid) await saveMessage(cid, "bot", msg);
     } finally {
@@ -262,7 +328,7 @@ export default function Chatbot() {
     initialHandledRef.current = true;
     sendMessageToBot(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
+  }, [location.state?.initialUserMessage]);
 
   // -----------------------------
   // UI
