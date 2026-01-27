@@ -15,12 +15,12 @@ export default function ChatbotStartLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
-  // 3-dots menu (FIXED wie ChatbotLayout)
+  // 3-dots menu (FIXED)
   const [menuOpenFor, setMenuOpenFor] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuWidth = 176; // w-44
 
-  // Delete modal (wie ChatbotLayout)
+  // Delete modal
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
 
@@ -31,7 +31,7 @@ export default function ChatbotStartLayout() {
     (ENV_API_BASE_URL && String(ENV_API_BASE_URL).trim()) || "";
 
   // ---------------------------------------------
-  // User & Token (1:1 wie ChatbotLayout)
+  // User & Token
   // ---------------------------------------------
   useEffect(() => {
     try {
@@ -80,8 +80,7 @@ export default function ChatbotStartLayout() {
   };
 
   // ---------------------------------------------
-  // Aktiver Chat: state + fallback sessionStorage (wie ChatbotLayout)
-  // (Start: wird NICHT angezeigt/hervorgehoben – aber wir behalten state kompatibel)
+  // Aktiver Chat: state + fallback sessionStorage
   // ---------------------------------------------
   const [activeChatId, setActiveChatId] = useState(() => {
     return sessionStorage.getItem("uniagentActiveChatId") || null;
@@ -96,7 +95,8 @@ export default function ChatbotStartLayout() {
   }, [location.state?.chatId]);
 
   // ---------------------------------------------
-  // Chats laden (1:1 wie ChatbotLayout)
+  // Chats laden (TOKEN-BASIERT)
+  // GET /api/chats
   // ---------------------------------------------
   const loadChats = async () => {
     const token = getToken();
@@ -168,7 +168,7 @@ export default function ChatbotStartLayout() {
   }, []);
 
   // ---------------------------------------------
-  // Click-outside: Menü stabil schließen (1:1 wie ChatbotLayout)
+  // Click-outside: Menü stabil schließen (data-attrs)
   // ---------------------------------------------
   useEffect(() => {
     const onDown = (e) => {
@@ -186,7 +186,7 @@ export default function ChatbotStartLayout() {
   }, []);
 
   // ---------------------------------------------
-  // Actions (1:1 wie ChatbotLayout)
+  // Actions
   // ---------------------------------------------
   const handleNewChat = async () => {
     setMenuOpenFor(null);
@@ -245,7 +245,7 @@ export default function ChatbotStartLayout() {
   };
 
   // ---------------------------------------------
-  // Delete modal helpers (1:1 wie ChatbotLayout)
+  // Delete modal helpers
   // ---------------------------------------------
   const openDeleteModal = (chat) => {
     setMenuOpenFor(null);
@@ -281,7 +281,6 @@ export default function ChatbotStartLayout() {
         throw new Error(`HTTP ${res.status} ${t}`);
       }
 
-      // Start-Seite: wir navigieren nicht weg, aber activeChatId sauber halten
       if (activeChatId === chatId) {
         setActiveChatId(null);
         sessionStorage.removeItem("uniagentActiveChatId");
@@ -296,7 +295,7 @@ export default function ChatbotStartLayout() {
   };
 
   // ---------------------------------------------
-  // Menü Position (FIXED) -> nicht mehr abgeschnitten (1:1 wie ChatbotLayout)
+  // Menü Position (FIXED) -> nicht mehr abgeschnitten
   // ---------------------------------------------
   const toggleMenuFor = (chatId, e) => {
     e.stopPropagation();
@@ -313,12 +312,11 @@ export default function ChatbotStartLayout() {
     let left = rect.right - menuWidth;
     let top = rect.bottom + padding;
 
-    // clamp in viewport
     left = Math.max(
       padding,
       Math.min(left, window.innerWidth - menuWidth - padding)
     );
-    const maxTop = window.innerHeight - 120; // grob
+    const maxTop = window.innerHeight - 120;
     top = Math.min(top, maxTop);
 
     setMenuPos({ top, left });
@@ -326,7 +324,7 @@ export default function ChatbotStartLayout() {
   };
 
   // ---------------------------------------------
-  // Suche: Frontend-Filter (1:1 wie ChatbotLayout)
+  // Suche: Frontend-Filter
   // ---------------------------------------------
   const filteredChats = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
@@ -335,7 +333,7 @@ export default function ChatbotStartLayout() {
   }, [chats, searchValue]);
 
   // ---------------------------------------------
-  // Datum: 1h Fix wenn Backend ohne TZ liefert (1:1 wie ChatbotLayout)
+  // Datum: 1h Fix wenn Backend ohne TZ liefert
   // ---------------------------------------------
   const normalizeIso = (s) => {
     if (!s || typeof s !== "string") return s;
@@ -371,9 +369,10 @@ export default function ChatbotStartLayout() {
         {collapsed ? (
           <div className="flex flex-col items-center justify-between h-full">
             <div className="flex flex-col items-center gap-4 mt-1">
+              {/* ✅ Logo -> Dashboard */}
               <button
                 type="button"
-                onClick={() => navigate("/chat-start")}
+                onClick={() => navigate("/dashboard")}
                 className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center font-semibold text-sm shadow-md cursor-pointer"
                 title="UNIAGENT"
               >
@@ -430,11 +429,12 @@ export default function ChatbotStartLayout() {
           <>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
+              {/* ✅ Logo/Text -> Dashboard */}
               <button
                 type="button"
-                onClick={() => navigate("/chat-start")}
+                onClick={() => navigate("/dashboard")}
                 className="flex items-center gap-3 cursor-pointer"
-                title="Zur Chat-Startseite"
+                title="Zum Dashboard"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
                   🎓
@@ -502,7 +502,7 @@ export default function ChatbotStartLayout() {
                     </div>
                   )}
 
-                  {/* ✅ Start-Ansicht: ALLE Boxen weiß, kein Aktuell, kein Grau */}
+                  {/* Start: alle weiß */}
                   {!loadingChats &&
                     chats.map((c) => (
                       <div
@@ -523,7 +523,6 @@ export default function ChatbotStartLayout() {
                           </span>
                         </button>
 
-                        {/* 3 Punkte immer sichtbar (wie ChatbotLayout) */}
                         <button
                           type="button"
                           data-chat-menu-btn="1"
@@ -560,7 +559,7 @@ export default function ChatbotStartLayout() {
         <Outlet />
       </main>
 
-      {/* FIXED Dropdown (nicht abgeschnitten) */}
+      {/* FIXED Dropdown */}
       {menuOpenFor && (
         <div
           data-chat-menu="1"
@@ -583,7 +582,7 @@ export default function ChatbotStartLayout() {
         </div>
       )}
 
-      {/* SEARCH MODAL (wie ChatbotLayout: ohne unteren Button) */}
+      {/* SEARCH MODAL (ohne unteren Button) */}
       {searchOpen && (
         <div
           className="fixed inset-0 z-[150] bg-black/35 flex items-center justify-center p-4"
@@ -656,7 +655,7 @@ export default function ChatbotStartLayout() {
         </div>
       )}
 
-      {/* DELETE MODAL (wie ChatbotLayout) */}
+      {/* DELETE MODAL */}
       {deleteOpen && (
         <div
           className="fixed inset-0 z-[220] bg-black/35 flex items-center justify-center p-4"
