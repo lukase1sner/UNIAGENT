@@ -1,6 +1,7 @@
 // src/pages/Haufig.jsx
 import React, { useEffect, useState } from "react";
 import "../styles/scrollAnimations.css";
+import { N8N_WEBHOOK_URL } from "../config";
 
 export default function Haufig() {
   const [faqs, setFaqs] = useState([]); // { q, a, rank, count, lastAsked, answerLoaded }
@@ -30,8 +31,8 @@ export default function Haufig() {
       }
     };
 
-    // Production-TopFAQ via Vite-Proxy -> https://bw13.app.n8n.cloud/webhook/api/top-faq
-    const TOPFAQ_URL = "/api/top-faq";
+    // ✅ In Production darf hier NICHT "/api/top-faq" stehen (Vite-Proxy gilt nur lokal)
+    const TOPFAQ_URL = "https://bw13.app.n8n.cloud/webhook/api/top-faq";
 
     const normalizeTopFaqResponse = (data) => {
       if (data?.success && Array.isArray(data?.topQuestions)) {
@@ -109,7 +110,9 @@ export default function Haufig() {
 
   // Holt die echte Antwort (FAQ) über deinen alten Webhook
   const fetchAnswerForQuestion = async (question) => {
+    // ✅ n8n URL kommt jetzt aus ENV (Vercel) über src/config.js
     const OLD_FAQ_WEBHOOK =
+      N8N_WEBHOOK_URL ||
       "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
 
     const res = await fetch(OLD_FAQ_WEBHOOK, {
