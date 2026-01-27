@@ -1,7 +1,10 @@
 // src/pages/Chatbot.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { N8N_WEBHOOK_URL as ENV_N8N_WEBHOOK_URL, API_BASE_URL as ENV_API_BASE_URL } from "../config";
+import {
+  N8N_WEBHOOK_URL as ENV_N8N_WEBHOOK_URL,
+  API_BASE_URL as ENV_API_BASE_URL,
+} from "../config";
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([]);
@@ -17,7 +20,7 @@ export default function Chatbot() {
   const bottomRef = useRef(null);
 
   // -----------------------------
-  // URLs (✅ robust + fallback)
+  // URLs (robust + fallback)
   // -----------------------------
   const N8N_URL =
     (ENV_N8N_WEBHOOK_URL && String(ENV_N8N_WEBHOOK_URL).trim()) ||
@@ -36,7 +39,7 @@ export default function Chatbot() {
   }, [messages, isLoading]);
 
   // -----------------------------
-  // LocalStorage Helpers
+  // LocalStorage helpers
   // -----------------------------
   const getUser = () => {
     try {
@@ -50,6 +53,11 @@ export default function Chatbot() {
   const getToken = () => {
     const user = getUser();
     return user?.token || null;
+  };
+
+  const authHeaders = () => {
+    const token = getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   // -----------------------------
@@ -69,25 +77,28 @@ export default function Chatbot() {
 
       if (data[0].json) {
         if (typeof data[0].json.output === "string") return data[0].json.output;
-        if (typeof data[0].json.BotResponse === "string") return data[0].json.BotResponse;
+        if (typeof data[0].json.BotResponse === "string")
+          return data[0].json.BotResponse;
       }
     }
 
-    if (data.output && typeof data.output.output === "string") return data.output.output;
+    if (data.output && typeof data.output.output === "string")
+      return data.output.output;
 
     return null;
   };
 
   // -----------------------------
   // Backend: Chat erstellen (einmalig)
-  // Erwartet: POST /api/chats  (Authorization: Bearer <token>)
+  // POST /api/chats  (Authorization: Bearer <token>)
   // Body: { title? }
   // -> { id } oder { chatId }
   // -----------------------------
   const createChatIfNeeded = async (titleHint) => {
-    // wenn schon gesetzt (oder vom navigate state), nutzen
+    // 1) schon vorhanden
     if (chatIdRef.current) return chatIdRef.current;
 
+    // 2) über navigate state übergeben
     const passedChatId = location.state?.chatId;
     if (passedChatId) {
       chatIdRef.current = passedChatId;
@@ -95,19 +106,14 @@ export default function Chatbot() {
     }
 
     const token = getToken();
-    if (!token) {
-      throw new Error("Kein Token gefunden. Bitte neu einloggen.");
-    }
-
-    if (!API_BASE_URL) {
-      throw new Error("API_BASE_URL fehlt (VITE_API_BASE_URL).");
-    }
+    if (!token) throw new Error("Kein Token gefunden. Bitte neu einloggen.");
+    if (!API_BASE_URL) throw new Error("API_BASE_URL fehlt (VITE_API_BASE_URL).");
 
     const res = await fetch(`${API_BASE_URL}/api/chats`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...authHeaders(),
       },
       body: JSON.stringify({
         title: (titleHint || "Neuer Chat").slice(0, 60),
@@ -124,12 +130,16 @@ export default function Chatbot() {
     if (!id) throw new Error("Backend hat keine Chat-ID zurückgegeben.");
 
     chatIdRef.current = id;
+
+    // Sidebar/Layouts informieren, dass Chats neu geladen werden sollen
+    window.dispatchEvent(new Event("uniagent:chatsChanged"));
+
     return id;
   };
 
   // -----------------------------
   // Backend: Nachricht speichern
-  // Erwartet: POST /api/chats/{chatId}/messages
+  // POST /api/chats/{chatId}/messages
   // Body: { sender, content }
   // -----------------------------
   const saveMessage = async (chatId, sender, content) => {
@@ -143,15 +153,17 @@ export default function Chatbot() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...authHeaders(),
         },
         body: JSON.stringify({ sender, content }),
       });
 
-      // nicht hart crashen, nur loggen
       if (!res.ok) {
         const t = await res.text().catch(() => "");
         console.warn("saveMessage failed:", res.status, t);
+      } else {
+        // optional: nach message speichern Chats refreshen (updatedAt/titel)
+        window.dispatchEvent(new Event("uniagent:chatsChanged"));
       }
     } catch (e) {
       console.warn("saveMessage error:", e);
@@ -165,21 +177,21 @@ export default function Chatbot() {
     const trimmed = userText.trim();
     if (!trimmed) return;
 
-    // sofort anzeigen
     setMessages((prev) => [...prev, { sender: "user", text: trimmed }]);
     setIsLoading(true);
 
+    let chatIdForThisMessage = null;
+
     try {
-      // ✅ ensure URLs
       if (!N8N_URL || String(N8N_URL).trim() === "") {
         throw new Error("N8N_WEBHOOK_URL fehlt (VITE_N8N_WEBHOOK_URL).");
       }
 
-      // ✅ Chat im Backend anlegen (wenn nötig) + User msg speichern
-      const chatId = await createChatIfNeeded(trimmed);
-      await saveMessage(chatId, "user", trimmed);
+      // Chat im Backend anlegen (wenn nötig) + User msg speichern
+      chatIdForThisMessage = await createChatIfNeeded(trimmed);
+      await saveMessage(chatIdForThisMessage, "user", trimmed);
 
-      // ✅ n8n call
+      // n8n call
       const res = await fetch(N8N_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -189,11 +201,13 @@ export default function Chatbot() {
         }),
       });
 
-      // 405 sauber erklären
+      // typische Fehler sauber melden
       if (res.status === 405) {
         const raw405 = await res.text().catch(() => "");
         console.error("n8n 405 raw:", raw405);
-        throw new Error("n8n HTTP 405 (Method Not Allowed) – URL oder Webhook-Typ passt nicht.");
+        throw new Error(
+          "n8n HTTP 405 (Method Not Allowed) – falsche URL oder Webhook nicht POST."
+        );
       }
 
       if (!res.ok) {
@@ -210,28 +224,24 @@ export default function Chatbot() {
         data = raw;
       }
 
-      const botText = extractBotText(data) || "Entschuldigung, ich konnte nicht helfen.";
+      const botText =
+        extractBotText(data) || "Entschuldigung, ich konnte nicht helfen.";
 
-      // bot anzeigen
       setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
-
-      // bot speichern
-      await saveMessage(chatId, "bot", botText);
+      await saveMessage(chatIdForThisMessage, "bot", botText);
     } catch (e) {
       console.error("sendMessageToBot error:", e);
 
       const msg =
         String(e?.message || "").includes("405")
-          ? "Technischer Fehler: n8n akzeptiert gerade kein POST (HTTP 405). Prüfe, ob du wirklich die richtige Webhook-URL nutzt."
+          ? "Technischer Fehler: n8n akzeptiert gerade kein POST (HTTP 405). Prüfe die Webhook-URL und dass der Webhook POST ist."
           : "Technischer Fehler beim Bot. Bitte später erneut versuchen.";
 
       setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
 
-      // auch Fehler speichern, wenn Chat existiert
-      try {
-        const chatId = chatIdRef.current;
-        if (chatId) await saveMessage(chatId, "bot", msg);
-      } catch {}
+      // Fehler speichern, wenn Chat existiert
+      const cid = chatIdForThisMessage || chatIdRef.current;
+      if (cid) await saveMessage(cid, "bot", msg);
     } finally {
       setIsLoading(false);
     }
@@ -251,6 +261,7 @@ export default function Chatbot() {
 
     initialHandledRef.current = true;
     sendMessageToBot(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   // -----------------------------
@@ -260,10 +271,17 @@ export default function Chatbot() {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
+          <div
+            key={i}
+            className={`flex ${
+              m.sender === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
             <div
               className={`px-4 py-3 rounded-xl max-w-xl text-sm ${
-                m.sender === "user" ? "bg-[#98C73C] text-white" : "bg-gray-200 text-gray-800"
+                m.sender === "user"
+                  ? "bg-[#98C73C] text-white"
+                  : "bg-gray-200 text-gray-800"
               }`}
             >
               {m.text}
@@ -304,7 +322,12 @@ export default function Chatbot() {
               className="w-full px-4 py-3 pr-14 rounded-xl focus:outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
               disabled={isLoading}
             />
 
@@ -314,11 +337,15 @@ export default function Chatbot() {
               disabled={!isReadyToSend}
               className={
                 "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full text-white transition " +
-                (isReadyToSend ? "bg-[#98C73C] hover:bg-[#7da32f]" : "bg-[#cfe5a9]")
+                (isReadyToSend
+                  ? "bg-[#98C73C] hover:bg-[#7da32f]"
+                  : "bg-[#cfe5a9]")
               }
               title="Senden"
             >
-              <span className="material-symbols-outlined text-[20px]">arrow_upward_alt</span>
+              <span className="material-symbols-outlined text-[20px]">
+                arrow_upward_alt
+              </span>
             </button>
           </div>
         </div>
