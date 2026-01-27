@@ -1,6 +1,7 @@
 // src/pages/Chatbot.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { N8N_WEBHOOK_URL } from "../config";
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([]);
@@ -15,12 +16,6 @@ export default function Chatbot() {
 
   // Session ID für n8n Memory - bleibt während der gesamten Chat-Session gleich
   const sessionIdRef = useRef("session-" + Date.now());
-
-  // ========================================
-  // WICHTIG: Hier deine n8n Webhook URL eintragen!
-  // ========================================
-  const N8N_WEBHOOK_URL =
-    "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
 
   // Hilfsfunktion: Bot-Text aus n8n Response extrahieren
   const extractBotText = (data) => {
@@ -47,7 +42,8 @@ export default function Chatbot() {
     }
 
     // verschachtelt: { output: { output: "..." } }
-    if (data.output && typeof data.output.output === "string") return data.output.output;
+    if (data.output && typeof data.output.output === "string")
+      return data.output.output;
 
     return null;
   };
@@ -92,16 +88,22 @@ export default function Chatbot() {
       const extracted = extractBotText(data);
       if (extracted) botText = extracted;
 
-      setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
+      // ✅ ultra-kurzer Delay (smoother UX, wirkt schneller)
+      setTimeout(() => {
+        setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
+      }, 80);
     } catch (error) {
       console.error("Fehler beim Abrufen der Antwort:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.",
-        },
-      ]);
+
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "bot",
+            text: "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.",
+          },
+        ]);
+      }, 80);
     } finally {
       setIsLoading(false);
     }
@@ -146,23 +148,23 @@ export default function Chatbot() {
           </div>
         ))}
 
-        {/* Loading Indicator */}
+        {/* Loading Indicator (✅ schneller) */}
         {isLoading && (
           <div className="flex justify-start">
             <div className="px-4 py-3 rounded-xl bg-gray-200 text-gray-800">
               <div className="flex items-center gap-2">
                 <div
                   className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0ms" }}
-                ></div>
+                  style={{ animationDelay: "0ms", animationDuration: "0.6s" }}
+                />
                 <div
                   className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "150ms" }}
-                ></div>
+                  style={{ animationDelay: "60ms", animationDuration: "0.6s" }}
+                />
                 <div
                   className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "300ms" }}
-                ></div>
+                  style={{ animationDelay: "120ms", animationDuration: "0.6s" }}
+                />
               </div>
             </div>
           </div>
