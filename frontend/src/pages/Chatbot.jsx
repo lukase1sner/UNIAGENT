@@ -1,3 +1,4 @@
+// src/pages/Chatbot.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { N8N_WEBHOOK_URL as ENV_N8N_WEBHOOK_URL } from "../config";
@@ -12,6 +13,12 @@ export default function Chatbot() {
 
   const initialHandledRef = useRef(false);
   const sessionIdRef = useRef("session-" + Date.now());
+
+  // Auto-Scroll ans Ende (macht UX deutlich “snappier”)
+  const bottomRef = useRef(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
   // Fallback, falls Vercel ENV nicht gesetzt ist
   const N8N_WEBHOOK_URL =
@@ -37,7 +44,8 @@ export default function Chatbot() {
       }
     }
 
-    if (data.output && typeof data.output.output === "string") return data.output.output;
+    if (data.output && typeof data.output.output === "string")
+      return data.output.output;
 
     return null;
   };
@@ -95,9 +103,10 @@ export default function Chatbot() {
       const extracted = extractBotText(data);
       if (extracted) botText = extracted;
 
-      // Sofortige Anzeige der Nachricht + schnellerer Delay
-      setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
-
+      // mini UX-delay, aber nicht “fake-streaming”
+      setTimeout(() => {
+        setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
+      }, 80);
     } catch (error) {
       console.error("Fehler beim Abrufen der Antwort:", error);
 
@@ -106,8 +115,9 @@ export default function Chatbot() {
           ? "Fehler 405: Dein n8n Endpoint akzeptiert kein POST. Prüfe: VITE_N8N_WEBHOOK_URL in Vercel + Webhook Node Method=POST."
           : "Es ist ein technischer Fehler aufgetreten. Bitte versuche es später erneut.";
 
-      setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
-
+      setTimeout(() => {
+        setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
+      }, 80);
     } finally {
       setIsLoading(false);
     }
@@ -132,10 +142,15 @@ export default function Chatbot() {
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
+          <div
+            key={i}
+            className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
+          >
             <div
               className={`px-4 py-3 rounded-xl max-w-xl text-sm ${
-                m.sender === "user" ? "bg-[#98C73C] text-white" : "bg-gray-200 text-gray-800"
+                m.sender === "user"
+                  ? "bg-[#98C73C] text-white"
+                  : "bg-gray-200 text-gray-800"
               }`}
             >
               {m.text}
@@ -143,17 +158,29 @@ export default function Chatbot() {
           </div>
         ))}
 
+        {/* Loading Indicator (ruhig & smooth) */}
         {isLoading && (
           <div className="flex justify-start">
             <div className="px-4 py-3 rounded-xl bg-gray-200 text-gray-800">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "0.3s" }} />
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "50ms", animationDuration: "0.3s" }} />
-                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "100ms", animationDuration: "0.3s" }} />
+                <div
+                  className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0ms", animationDuration: "1.1s" }}
+                />
+                <div
+                  className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "200ms", animationDuration: "1.1s" }}
+                />
+                <div
+                  className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "400ms", animationDuration: "1.1s" }}
+                />
               </div>
             </div>
           </div>
         )}
+
+        <div ref={bottomRef} />
       </div>
 
       <div className="px-4 pb-4 pt-2">
@@ -163,7 +190,9 @@ export default function Chatbot() {
               className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition"
               type="button"
             >
-              <span className="material-symbols-outlined text-[22px]">upload_file</span>
+              <span className="material-symbols-outlined text-[22px]">
+                upload_file
+              </span>
             </button>
 
             <input
@@ -182,10 +211,14 @@ export default function Chatbot() {
               type="button"
               className={
                 "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full transition " +
-                (isReadyToSend ? "bg-[#98C73C] text-white hover:bg-[#7da32f] cursor-pointer" : "bg-[#cfe5a9] text-white cursor-default")
+                (isReadyToSend
+                  ? "bg-[#98C73C] text-white hover:bg-[#7da32f] cursor-pointer"
+                  : "bg-[#cfe5a9] text-white cursor-default")
               }
             >
-              <span className="material-symbols-outlined text-[22px]">arrow_upward_alt</span>
+              <span className="material-symbols-outlined text-[22px]">
+                arrow_upward_alt
+              </span>
             </button>
           </div>
         </div>
