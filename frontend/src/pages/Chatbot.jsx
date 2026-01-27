@@ -1,30 +1,43 @@
 // src/pages/Chatbot.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { N8N_WEBHOOK_URL, API_BASE_URL } from "../config";
+import { N8N_WEBHOOK_URL as ENV_N8N_WEBHOOK_URL, API_BASE_URL as ENV_API_BASE_URL } from "../config";
 
 export default function Chatbot() {
-  const location = useLocation();
-
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const isReadyToSend = input.trim().length > 0 && !isLoading;
+  const location = useLocation();
 
   const initialHandledRef = useRef(false);
   const sessionIdRef = useRef("session-" + Date.now());
   const chatIdRef = useRef(null);
 
-  // Auto-Scroll
   const bottomRef = useRef(null);
+
+  // -----------------------------
+  // URLs (✅ robust + fallback)
+  // -----------------------------
+  const N8N_URL =
+    (ENV_N8N_WEBHOOK_URL && String(ENV_N8N_WEBHOOK_URL).trim()) ||
+    "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
+
+  const API_BASE_URL =
+    (ENV_API_BASE_URL && String(ENV_API_BASE_URL).trim()) || "";
+
+  const isReadyToSend = input.trim().length > 0 && !isLoading;
+
+  // -----------------------------
+  // Auto scroll
+  // -----------------------------
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // ---------------------------------------------
-  // LocalStorage helpers
-  // ---------------------------------------------
+  // -----------------------------
+  // LocalStorage Helpers
+  // -----------------------------
   const getUser = () => {
     try {
       const raw = localStorage.getItem("uniagentUser");
@@ -34,43 +47,22 @@ export default function Chatbot() {
     }
   };
 
-  const getAccessToken = () => {
-    const u = getUser();
-    return (
-      u?.token || // du speicherst "token"
-      u?.access_token || // falls du mal access_token speicherst
-      null
-    );
+  const getToken = () => {
+    const user = getUser();
+    return user?.token || null;
   };
 
-  const authHeaders = useMemo(() => {
-    const token = getAccessToken();
-    return token
-      ? {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      : { "Content-Type": "application/json" };
-  }, []);
-
-  // ---------------------------------------------
-  // Robust: Bot-Text aus n8n Response extrahieren
-  // ---------------------------------------------
+  // -----------------------------
+  // n8n: Bot-Text extrahieren
+  // -----------------------------
   const extractBotText = (data) => {
     if (!data) return null;
 
-    // direkter String
     if (typeof data === "string") return data;
 
-    // Objekt
     if (typeof data.output === "string") return data.output;
     if (typeof data.BotResponse === "string") return data.BotResponse;
-    if (typeof data.text === "string") return data.text;
 
-    // verschachtelt
-    if (data.output && typeof data.output.output === "string") return data.output.output;
-
-    // Array-Varianten (n8n)
     if (Array.isArray(data) && data[0]) {
       if (typeof data[0].output === "string") return data[0].output;
       if (typeof data[0].BotResponse === "string") return data[0].BotResponse;
@@ -78,152 +70,117 @@ export default function Chatbot() {
       if (data[0].json) {
         if (typeof data[0].json.output === "string") return data[0].json.output;
         if (typeof data[0].json.BotResponse === "string") return data[0].json.BotResponse;
-        if (typeof data[0].json.text === "string") return data[0].json.text;
       }
     }
+
+    if (data.output && typeof data.output.output === "string") return data.output.output;
 
     return null;
   };
 
-  // ---------------------------------------------
+  // -----------------------------
   // Backend: Chat erstellen (einmalig)
-  // Erwartet: POST /api/chats (Authorization Bearer)
+  // Erwartet: POST /api/chats  (Authorization: Bearer <token>)
   // Body: { title? }
   // -> { id } oder { chatId }
-  // ---------------------------------------------
-  const createChatIfNeeded = async (firstMessage) => {
-    // 1) wenn über Navigation schon da
-    const fromState = location.state?.chatId;
-    if (fromState && !chatIdRef.current) chatIdRef.current = fromState;
-
+  // -----------------------------
+  const createChatIfNeeded = async (titleHint) => {
+    // wenn schon gesetzt (oder vom navigate state), nutzen
     if (chatIdRef.current) return chatIdRef.current;
 
-    const token = getAccessToken();
-    if (!token) {
-      console.warn("Kein Access-Token in LocalStorage (uniagentUser.token).");
-      return null;
+    const passedChatId = location.state?.chatId;
+    if (passedChatId) {
+      chatIdRef.current = passedChatId;
+      return passedChatId;
     }
 
-    const title = (firstMessage || "Neuer Chat").trim().slice(0, 60);
+    const token = getToken();
+    if (!token) {
+      throw new Error("Kein Token gefunden. Bitte neu einloggen.");
+    }
+
+    if (!API_BASE_URL) {
+      throw new Error("API_BASE_URL fehlt (VITE_API_BASE_URL).");
+    }
 
     const res = await fetch(`${API_BASE_URL}/api/chats`, {
       method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ title }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: (titleHint || "Neuer Chat").slice(0, 60),
+      }),
     });
 
-    const raw = await res.text();
     if (!res.ok) {
-      throw new Error(`Chat create failed: HTTP ${res.status} - ${raw}`);
+      const t = await res.text().catch(() => "");
+      throw new Error(`Chat erstellen fehlgeschlagen: HTTP ${res.status} ${t}`);
     }
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      data = {};
-    }
-
+    const data = await res.json().catch(() => ({}));
     const id = data.id || data.chatId;
-    if (!id) throw new Error("Chat create failed: response has no id/chatId");
+    if (!id) throw new Error("Backend hat keine Chat-ID zurückgegeben.");
 
     chatIdRef.current = id;
     return id;
   };
 
-  // ---------------------------------------------
-  // Backend: Message speichern
-  // Erwartet: POST /api/chats/{chatId}/messages (Authorization Bearer)
-  // Body: { sender: "user"|"bot", content: "..." }
-  // ---------------------------------------------
+  // -----------------------------
+  // Backend: Nachricht speichern
+  // Erwartet: POST /api/chats/{chatId}/messages
+  // Body: { sender, content }
+  // -----------------------------
   const saveMessage = async (chatId, sender, content) => {
     if (!chatId) return;
 
-    const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}/messages`, {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ sender, content }),
-    });
+    const token = getToken();
+    if (!token) return;
 
-    if (!res.ok) {
-      const raw = await res.text().catch(() => "");
-      console.warn("saveMessage failed:", res.status, raw);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sender, content }),
+      });
+
+      // nicht hart crashen, nur loggen
+      if (!res.ok) {
+        const t = await res.text().catch(() => "");
+        console.warn("saveMessage failed:", res.status, t);
+      }
+    } catch (e) {
+      console.warn("saveMessage error:", e);
     }
   };
 
-  // ---------------------------------------------
-  // Backend: Messages laden (wenn chatId da)
-  // Erwartet: GET /api/chats/{chatId}/messages (Authorization Bearer)
-  // -> [{sender, content}]
-  // ---------------------------------------------
-  const loadMessages = async (chatId) => {
-    if (!chatId) return;
-
-    const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}/messages`, {
-      method: "GET",
-      headers: authHeaders,
-    });
-
-    if (!res.ok) {
-      const raw = await res.text().catch(() => "");
-      console.warn("loadMessages failed:", res.status, raw);
-      return;
-    }
-
-    const data = await res.json();
-    if (!Array.isArray(data)) return;
-
-    setMessages(
-      data
-        .filter((m) => m && m.sender && (m.content ?? m.text))
-        .map((m) => ({
-          sender: m.sender,
-          text: (m.content ?? m.text ?? "").toString(),
-        }))
-    );
-  };
-
-  // beim Eintritt mit chatId: messages laden
-  useEffect(() => {
-    const cid = location.state?.chatId;
-    if (!cid) return;
-    chatIdRef.current = cid;
-    loadMessages(cid);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state?.chatId]);
-
-  // ---------------------------------------------
-  // n8n Anfrage + UI + speichern
-  // ---------------------------------------------
+  // -----------------------------
+  // Nachricht senden
+  // -----------------------------
   const sendMessageToBot = async (userText) => {
-    const trimmed = (userText || "").trim();
+    const trimmed = userText.trim();
     if (!trimmed) return;
 
-    // UI sofort
+    // sofort anzeigen
     setMessages((prev) => [...prev, { sender: "user", text: trimmed }]);
     setIsLoading(true);
 
-    let chatId = null;
-
     try {
-      chatId = await createChatIfNeeded(trimmed);
+      // ✅ ensure URLs
+      if (!N8N_URL || String(N8N_URL).trim() === "") {
+        throw new Error("N8N_WEBHOOK_URL fehlt (VITE_N8N_WEBHOOK_URL).");
+      }
+
+      // ✅ Chat im Backend anlegen (wenn nötig) + User msg speichern
+      const chatId = await createChatIfNeeded(trimmed);
       await saveMessage(chatId, "user", trimmed);
-    } catch (e) {
-      console.error(e);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text:
-            "Ich konnte den Chat im Backend nicht erstellen/speichern (Auth/Endpoint). Bitte prüfe Backend-URL & Token.",
-        },
-      ]);
-      setIsLoading(false);
-      return;
-    }
 
-    try {
-      const res = await fetch(N8N_WEBHOOK_URL, {
+      // ✅ n8n call
+      const res = await fetch(N8N_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -232,11 +189,20 @@ export default function Chatbot() {
         }),
       });
 
-      const raw = await res.text();
-      if (!res.ok) {
-        throw new Error(`n8n HTTP ${res.status}: ${raw}`);
+      // 405 sauber erklären
+      if (res.status === 405) {
+        const raw405 = await res.text().catch(() => "");
+        console.error("n8n 405 raw:", raw405);
+        throw new Error("n8n HTTP 405 (Method Not Allowed) – URL oder Webhook-Typ passt nicht.");
       }
 
+      if (!res.ok) {
+        const rawErr = await res.text().catch(() => "");
+        console.error("n8n error raw:", rawErr);
+        throw new Error(`n8n HTTP ${res.status}`);
+      }
+
+      const raw = await res.text();
       let data;
       try {
         data = JSON.parse(raw);
@@ -246,17 +212,26 @@ export default function Chatbot() {
 
       const botText = extractBotText(data) || "Entschuldigung, ich konnte nicht helfen.";
 
-      // mini-delay, wirkt smooth (kein fake streaming)
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
-      }, 60);
+      // bot anzeigen
+      setMessages((prev) => [...prev, { sender: "bot", text: botText }]);
 
+      // bot speichern
       await saveMessage(chatId, "bot", botText);
     } catch (e) {
-      console.error("n8n error:", e);
-      const msg = "Technischer Fehler beim Bot. Bitte später erneut versuchen.";
+      console.error("sendMessageToBot error:", e);
+
+      const msg =
+        String(e?.message || "").includes("405")
+          ? "Technischer Fehler: n8n akzeptiert gerade kein POST (HTTP 405). Prüfe, ob du wirklich die richtige Webhook-URL nutzt."
+          : "Technischer Fehler beim Bot. Bitte später erneut versuchen.";
+
       setMessages((prev) => [...prev, { sender: "bot", text: msg }]);
-      await saveMessage(chatId, "bot", msg);
+
+      // auch Fehler speichern, wenn Chat existiert
+      try {
+        const chatId = chatIdRef.current;
+        if (chatId) await saveMessage(chatId, "bot", msg);
+      } catch {}
     } finally {
       setIsLoading(false);
     }
@@ -269,31 +244,26 @@ export default function Chatbot() {
     sendMessageToBot(current);
   };
 
-  // initial message (vom Startscreen)
+  // initial message (von ChatbotStart)
   useEffect(() => {
     const initial = location.state?.initialUserMessage;
     if (!initial || initialHandledRef.current) return;
+
     initialHandledRef.current = true;
     sendMessageToBot(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
-  // ---------------------------------------------
+  // -----------------------------
   // UI
-  // ---------------------------------------------
+  // -----------------------------
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`px-4 py-3 rounded-xl max-w-xl text-sm ${
-                m.sender === "user"
-                  ? "bg-[#98C73C] text-white"
-                  : "bg-gray-200 text-gray-800"
+                m.sender === "user" ? "bg-[#98C73C] text-white" : "bg-gray-200 text-gray-800"
               }`}
             >
               {m.text}
@@ -301,22 +271,21 @@ export default function Chatbot() {
           </div>
         ))}
 
-        {/* Loading Indicator (ruhig & smooth) */}
         {isLoading && (
           <div className="flex justify-start">
             <div className="px-4 py-3 rounded-xl bg-gray-200 text-gray-800">
               <div className="flex items-center gap-2">
-                <span
+                <div
                   className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
                   style={{ animationDelay: "0ms", animationDuration: "1.2s" }}
                 />
-                <span
+                <div
                   className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "220ms", animationDuration: "1.2s" }}
+                  style={{ animationDelay: "200ms", animationDuration: "1.2s" }}
                 />
-                <span
+                <div
                   className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "440ms", animationDuration: "1.2s" }}
+                  style={{ animationDelay: "400ms", animationDuration: "1.2s" }}
                 />
               </div>
             </div>
@@ -335,12 +304,7 @@ export default function Chatbot() {
               className="w-full px-4 py-3 pr-14 rounded-xl focus:outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               disabled={isLoading}
             />
 
@@ -349,16 +313,12 @@ export default function Chatbot() {
               onClick={sendMessage}
               disabled={!isReadyToSend}
               className={
-                "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full transition " +
-                (isReadyToSend
-                  ? "bg-[#98C73C] text-white hover:bg-[#7da32f] cursor-pointer"
-                  : "bg-[#cfe5a9] text-white cursor-default")
+                "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full text-white transition " +
+                (isReadyToSend ? "bg-[#98C73C] hover:bg-[#7da32f]" : "bg-[#cfe5a9]")
               }
               title="Senden"
             >
-              <span className="material-symbols-outlined text-[22px]">
-                arrow_upward_alt
-              </span>
+              <span className="material-symbols-outlined text-[20px]">arrow_upward_alt</span>
             </button>
           </div>
         </div>
