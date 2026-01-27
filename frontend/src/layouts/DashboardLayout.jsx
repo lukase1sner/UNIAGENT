@@ -29,6 +29,17 @@ export default function DashboardLayout() {
     }
   }, []);
 
+  // ✅ Mobile Menü offen -> Hintergrund scroll lock
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev || "";
+      };
+    }
+  }, [mobileMenuOpen]);
+
   const getInitials = (user) => {
     if (!user) return "ME";
     const f = user.firstName?.trim()?.charAt(0) || "";
@@ -62,7 +73,7 @@ export default function DashboardLayout() {
   // Mobile Menü-Items (gleiches "Design-System" wie Sidebar)
   const mobileItems = [
     { icon: "team_dashboard", label: "Dashboard", path: "/dashboard" },
-    { icon: "question_exchange", label: "Häufig gestellte Fragen", path: "/haufig" }, // ✅ FIX
+    { icon: "question_exchange", label: "Häufig gestellte Fragen", path: "/haufig" },
     { icon: "link", label: "Nützliche Links", path: "/nuetzliche-links" },
     { icon: "chat", label: "Chatbot fragen", path: "/chat-start" },
     { icon: "person", label: "Mein Bereich", path: "/mein-bereich" },
@@ -74,7 +85,8 @@ export default function DashboardLayout() {
       <header className="w-full py-4 px-4 lg:py-6 lg:px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
-          onClick={() => navigate("/")}
+          // ✅ Klick auf Logo/UNIAGENT -> Dashboard
+          onClick={() => navigate("/dashboard")}
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
             🎓
@@ -88,10 +100,7 @@ export default function DashboardLayout() {
             className="hidden lg:inline-flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
                        hover:bg-black hover:text-white transition cursor-pointer"
           >
-            {/* ✅ ICON VOR ABMELDEN */}
-            <span className="material-symbols-outlined text-[20px]">
-              logout
-            </span>
+            <span className="material-symbols-outlined text-[20px]">logout</span>
             Abmelden
           </button>
 
@@ -114,7 +123,7 @@ export default function DashboardLayout() {
               className="flex items-center gap-3 select-none cursor-pointer"
               onClick={() => {
                 setMobileMenuOpen(false);
-                navigate("/");
+                navigate("/dashboard"); // ✅ auch hier Dashboard
               }}
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
@@ -136,7 +145,8 @@ export default function DashboardLayout() {
           </div>
 
           {/* Items + Logout */}
-          <div className="px-4 py-5 flex flex-col h-[calc(100vh-72px)]">
+          {/* ✅ Menü selbst scrollt, Hintergrund nicht */}
+          <div className="px-4 py-5 flex flex-col h-[calc(100vh-72px)] overflow-y-auto overscroll-contain">
             <nav className="flex flex-col gap-2">
               {mobileItems.map((item) => {
                 const active = item.path ? isActive(item.path) : false;
@@ -168,7 +178,6 @@ export default function DashboardLayout() {
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-black text-white font-medium
                            hover:bg-[#111] transition cursor-pointer"
               >
-                {/* ✅ ICON VOR ABMELDEN (MOBILE) */}
                 <span className="material-symbols-outlined text-[20px]">
                   logout
                 </span>
@@ -182,10 +191,7 @@ export default function DashboardLayout() {
       {/* MAIN */}
       <main className="flex-1 flex flex-col">
         {/* DESKTOP */}
-        <div
-          className="hidden lg:flex flex-1 relative isolate"
-          style={gradientStyle}
-        >
+        <div className="hidden lg:flex flex-1 relative isolate" style={gradientStyle}>
           {/* SIDEBAR (GLASS) */}
           <aside
             className={`${
@@ -255,7 +261,7 @@ export default function DashboardLayout() {
                         : label === "Nützliche Links"
                         ? "/nuetzliche-links"
                         : label === "Häufig gestellte Fragen"
-                        ? "/haufig" // ✅ FIX
+                        ? "/haufig"
                         : null;
 
                     const active = path ? isActive(path) : false;
@@ -323,7 +329,7 @@ export default function DashboardLayout() {
                 <nav className="flex flex-col gap-4 flex-1">
                   {[
                     ["team_dashboard", "Dashboard", isActive("/dashboard")],
-                    ["question_exchange", "Häufig gestellte Fragen", isActive("/haufig")], // ✅ FIX
+                    ["question_exchange", "Häufig gestellte Fragen", isActive("/haufig")],
                     ["link", "Nützliche Links", isActive("/nuetzliche-links")],
                     ["chat", "Chatbot fragen", isActive("/chat-start")],
                     ["person", "Mein Bereich", isActive("/mein-bereich")],
@@ -332,7 +338,7 @@ export default function DashboardLayout() {
                       key={icon}
                       onClick={() => {
                         if (icon === "team_dashboard") goTo("/dashboard");
-                        if (icon === "question_exchange") goTo("/haufig"); // ✅ FIX
+                        if (icon === "question_exchange") goTo("/haufig");
                         if (icon === "chat") goTo("/chat-start");
                         if (icon === "link") goTo("/nuetzliche-links");
                         if (icon === "person") goTo("/mein-bereich");
@@ -380,16 +386,16 @@ export default function DashboardLayout() {
       <footer className="bg-[#E4ECD9] mt-0 py-8">
         {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
-          <a href="#funktionen" className="hover:text-gray-800 transition">
+          <a href="#funktionen" className="hover:underline transition">
             Funktionen
           </a>
-          <a href="#kontakt" className="hover:text-gray-800 transition">
+          <a href="#kontakt" className="hover:underline transition">
             Kontakt
           </a>
-          <a href="/impressum" className="hover:text-gray-800 transition">
+          <a href="/impressum" className="hover:underline transition">
             Impressum
           </a>
-          <a href="/datenschutz" className="hover:text-gray-800 transition">
+          <a href="/datenschutz" className="hover:underline transition">
             Datenschutz
           </a>
 
@@ -400,28 +406,16 @@ export default function DashboardLayout() {
 
         {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
-          <a
-            href="#funktionen"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="#funktionen" className="hover:underline transition cursor-pointer">
             Funktionen
           </a>
-          <a
-            href="#kontakt"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="#kontakt" className="hover:underline transition cursor-pointer">
             Kontakt
           </a>
-          <a
-            href="/impressum"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="/impressum" className="hover:underline transition cursor-pointer">
             Impressum
           </a>
-          <a
-            href="/datenschutz"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="/datenschutz" className="hover:underline transition cursor-pointer">
             Datenschutz
           </a>
 
