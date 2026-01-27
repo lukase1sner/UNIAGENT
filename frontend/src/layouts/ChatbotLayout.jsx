@@ -15,16 +15,12 @@ export default function ChatbotLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
-  // 3-dots menu (pro Chat)
+  // 3-dots menu
   const [menuOpenFor, setMenuOpenFor] = useState(null);
 
   // Delete modal
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    chatId: null,
-    title: "",
-    busy: false,
-  });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,12 +97,7 @@ export default function ChatbotLayout() {
   // ---------------------------------------------
   const loadChats = async () => {
     const token = getToken();
-    if (!token) {
-      setChats([]);
-      return;
-    }
-    if (!API_BASE_URL) {
-      console.error("API_BASE_URL fehlt. Prüfe VITE_API_BASE_URL in Vercel.");
+    if (!token || !API_BASE_URL) {
       setChats([]);
       return;
     }
@@ -124,11 +115,7 @@ export default function ChatbotLayout() {
       }
 
       const data = await res.json().catch(() => null);
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.chats)
-        ? data.chats
-        : [];
+      const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
 
       const normalized = list
         .map((c) => ({
@@ -174,17 +161,14 @@ export default function ChatbotLayout() {
   }, []);
 
   // ---------------------------------------------
-  // Click-outside: Menü schließen (robust)
+  // Click-outside: Menü stabil schließen (data-attrs)
   // ---------------------------------------------
   useEffect(() => {
     const onDown = (e) => {
       const el = e.target;
       if (!(el instanceof HTMLElement)) return;
 
-      // Klick auf Menü-Button -> nicht schließen (Toggle macht der Button)
       if (el.closest("[data-chat-menu-btn='1']")) return;
-
-      // Klick ins Menü -> nicht schließen
       if (el.closest("[data-chat-menu='1']")) return;
 
       setMenuOpenFor(null);
@@ -198,6 +182,10 @@ export default function ChatbotLayout() {
   // Actions
   // ---------------------------------------------
   const handleNewChat = async () => {
+    setMenuOpenFor(null);
+    setSearchOpen(false);
+    setSearchValue("");
+
     const token = getToken();
     if (!token) {
       alert("Bitte neu einloggen (Token fehlt).");
@@ -207,10 +195,6 @@ export default function ChatbotLayout() {
       alert("API_BASE_URL fehlt (VITE_API_BASE_URL).");
       return;
     }
-
-    setMenuOpenFor(null);
-    setSearchOpen(false);
-    setSearchValue("");
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/chats`, {
@@ -234,8 +218,11 @@ export default function ChatbotLayout() {
       setActiveChatId(id);
       sessionStorage.setItem("uniagentActiveChatId", id);
 
-      loadChats();
+      // in den neuen Chat (nicht ChatbotStart!)
       navigate("/chat", { state: { chatId: id } });
+
+      await loadChats();
+      window.dispatchEvent(new Event("uniagent:chatsChanged"));
     } catch (e) {
       console.error("Neuer Chat fehlgeschlagen:", e);
       alert("Neuer Chat konnte nicht erstellt werden.");
@@ -253,37 +240,31 @@ export default function ChatbotLayout() {
   };
 
   // ---------------------------------------------
-  // Delete flow (Modal)
+  // Delete modal helpers
   // ---------------------------------------------
-  const requestDeleteChat = (chatId) => {
-    const chat = chats.find((c) => c.id === chatId);
+  const openDeleteModal = (chat) => {
     setMenuOpenFor(null);
-    setDeleteModal({
-      open: true,
-      chatId,
-      title: chat?.title || "Neuer Chat",
-      busy: false,
-    });
+    setDeleteTarget({ id: chat.id, title: chat.title || "Neuer Chat" });
+    setDeleteOpen(true);
   };
 
   const closeDeleteModal = () => {
-    if (deleteModal.busy) return;
-    setDeleteModal({ open: false, chatId: null, title: "", busy: false });
+    setDeleteOpen(false);
+    setDeleteTarget(null);
   };
 
-  const confirmDeleteChat = async () => {
+  const confirmDelete = async () => {
     const token = getToken();
-    const chatId = deleteModal.chatId;
+    if (!token || !deleteTarget?.id) return;
 
-    if (!token || !chatId) {
-      closeDeleteModal();
-      return;
-    }
+    const chatId = deleteTarget.id;
 
-    setDeleteModal((p) => ({ ...p, busy: true }));
+    // Modal direkt zu
+    closeDeleteModal();
 
     // Optimistic UI
     setChats((prev) => prev.filter((c) => c.id !== chatId));
+    setMenuOpenFor(null);
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
@@ -296,27 +277,18 @@ export default function ChatbotLayout() {
         throw new Error(`HTTP ${res.status} ${t}`);
       }
 
-      // wenn aktiver gelöscht -> sinnvoll navigieren
       if (activeChatId === chatId) {
-        sessionStorage.removeItem("uniagentActiveChatId");
         setActiveChatId(null);
-
-        // wenn noch Chats existieren, öffne den neuesten; sonst Start
-        const remaining = chats.filter((c) => c.id !== chatId);
-        if (remaining.length > 0) {
-          openChat(remaining[0].id);
-        } else {
-          navigate("/chat-start");
-        }
+        sessionStorage.removeItem("uniagentActiveChatId");
+        navigate("/chat-start");
       }
 
+      await loadChats();
       window.dispatchEvent(new Event("uniagent:chatsChanged"));
     } catch (e) {
       console.error("Chat löschen Fehler:", e);
-      // reload zur Sicherheit
-      loadChats();
-    } finally {
-      setDeleteModal({ open: false, chatId: null, title: "", busy: false });
+      // Reload, damit UI sicher korrekt ist
+      await loadChats();
     }
   };
 
@@ -329,12 +301,17 @@ export default function ChatbotLayout() {
     return chats.filter((c) => (c.title || "").toLowerCase().includes(q));
   }, [chats, searchValue]);
 
-  // ---------------------------------------------
-  // "Aktuell" Label nur einmal anzeigen
-  // ---------------------------------------------
+  // "Aktuell" Label nur vor aktivem Chat
   const hasActive = Boolean(activeChatId);
   const activeIndex = hasActive ? chats.findIndex((c) => c.id === activeChatId) : -1;
   const showAktuellLabel = hasActive && activeIndex >= 0;
+
+  const formatDateDE = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString("de-DE", { timeZone: "Europe/Berlin" }); // ✅ 1h Fix (UTC -> Berlin)
+  };
 
   return (
     <div
@@ -493,11 +470,11 @@ export default function ChatbotLayout() {
                               <span className="truncate text-gray-800">{c.title || "Neuer Chat"}</span>
                             </button>
 
-                            {/* ✅ 3 Punkte IMMER sichtbar (damit Löschen immer möglich ist) */}
+                            {/* 3 Punkte: IMMER sichtbar + cursor-pointer */}
                             <button
                               type="button"
                               data-chat-menu-btn="1"
-                              className="opacity-70 hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200 cursor-pointer"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setMenuOpenFor((prev) => (prev === c.id ? null : c.id));
@@ -520,7 +497,7 @@ export default function ChatbotLayout() {
                                 <button
                                   type="button"
                                   className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 cursor-pointer"
-                                  onClick={() => requestDeleteChat(c.id)}
+                                  onClick={() => openDeleteModal(c)}
                                 >
                                   <span className="material-symbols-outlined text-[18px]">delete</span>
                                   Chat löschen
@@ -551,7 +528,7 @@ export default function ChatbotLayout() {
         <Outlet />
       </main>
 
-      {/* SEARCH MODAL */}
+      {/* SEARCH MODAL (ohne unteren Schließen-Button) */}
       {searchOpen && (
         <div
           className="fixed inset-0 z-[80] bg-black/35 flex items-center justify-center p-4"
@@ -607,9 +584,7 @@ export default function ChatbotLayout() {
                             {c.title || "Neuer Chat"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {c.updatedAt || c.createdAt
-                              ? new Date(c.updatedAt || c.createdAt).toLocaleString("de-DE")
-                              : ""}
+                            {formatDateDE(c.updatedAt || c.createdAt)}
                           </div>
                         </div>
                       </button>
@@ -617,15 +592,13 @@ export default function ChatbotLayout() {
                   </div>
                 )}
               </div>
-
-              {/* kein extra Schließen Button unten */}
             </div>
           </div>
         </div>
       )}
 
       {/* DELETE MODAL */}
-      {deleteModal.open && (
+      {deleteOpen && (
         <div
           className="fixed inset-0 z-[90] bg-black/35 flex items-center justify-center p-4"
           onClick={closeDeleteModal}
@@ -641,33 +614,32 @@ export default function ChatbotLayout() {
                 className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center cursor-pointer"
                 onClick={closeDeleteModal}
                 aria-label="Schließen"
-                disabled={deleteModal.busy}
               >
                 <span className="material-symbols-outlined text-[22px]">close</span>
               </button>
             </div>
 
             <div className="px-5 py-4">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-gray-600">
                 Möchtest du den Chat{" "}
-                <span className="font-semibold">{deleteModal.title}</span> wirklich löschen?
+                <span className="font-semibold text-gray-900">
+                  {deleteTarget?.title || "Neuer Chat"}
+                </span>{" "}
+                wirklich löschen?
               </div>
 
               <div className="mt-5 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={closeDeleteModal}
-                  disabled={deleteModal.busy}
-                  className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Abbrechen
                 </button>
-
                 <button
                   type="button"
-                  onClick={confirmDeleteChat}
-                  disabled={deleteModal.busy}
-                  className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  onClick={confirmDelete}
+                  className="px-4 py-2 rounded-full bg-red-600 text-white text-sm font-semibold hover:bg-red-700 cursor-pointer"
                 >
                   Löschen
                 </button>
