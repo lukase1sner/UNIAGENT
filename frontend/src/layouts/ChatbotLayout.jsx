@@ -1,5 +1,5 @@
 // src/layouts/ChatbotLayout.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL as ENV_API_BASE_URL } from "../config";
 
@@ -27,7 +27,8 @@ export default function ChatbotLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const API_BASE_URL = (ENV_API_BASE_URL && String(ENV_API_BASE_URL).trim()) || "";
+  const API_BASE_URL =
+    (ENV_API_BASE_URL && String(ENV_API_BASE_URL).trim()) || "";
 
   // ---------------------------------------------
   // User & Token
@@ -117,7 +118,11 @@ export default function ChatbotLayout() {
       }
 
       const data = await res.json().catch(() => null);
-      const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.chats)
+        ? data.chats
+        : [];
 
       const normalized = list
         .map((c) => ({
@@ -308,9 +313,11 @@ export default function ChatbotLayout() {
     let left = rect.right - menuWidth;
     let top = rect.bottom + padding;
 
-    // clamp in viewport
-    left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
-    const maxTop = window.innerHeight - 120; // grob
+    left = Math.max(
+      padding,
+      Math.min(left, window.innerWidth - menuWidth - padding)
+    );
+    const maxTop = window.innerHeight - 120;
     top = Math.min(top, maxTop);
 
     setMenuPos({ top, left });
@@ -337,13 +344,10 @@ export default function ChatbotLayout() {
   const normalizeIso = (s) => {
     if (!s || typeof s !== "string") return s;
 
-    // hat bereits Zeitzone?
     const hasTZ = /Z$|[+-]\d{2}:\d{2}$/.test(s);
     if (hasTZ) return s;
 
-    // typisches ISO ohne TZ -> als UTC behandeln
     if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return `${s}Z`;
-
     return s;
   };
 
@@ -371,9 +375,10 @@ export default function ChatbotLayout() {
         {collapsed ? (
           <div className="flex flex-col items-center justify-between h-full">
             <div className="flex flex-col items-center gap-4 mt-1">
+              {/* ✅ Logo -> Dashboard */}
               <button
                 type="button"
-                onClick={() => navigate("/chat-start")}
+                onClick={() => navigate("/dashboard")}
                 className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center font-semibold text-sm shadow-md cursor-pointer"
                 title="UNIAGENT"
               >
@@ -386,7 +391,9 @@ export default function ChatbotLayout() {
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[24px]">menu</span>
+                <span className="material-symbols-outlined text-[24px]">
+                  menu
+                </span>
               </button>
 
               <button
@@ -395,7 +402,9 @@ export default function ChatbotLayout() {
                 onClick={handleNewChat}
                 type="button"
               >
-                <span className="material-symbols-outlined text-[24px]">add_2</span>
+                <span className="material-symbols-outlined text-[24px]">
+                  add_2
+                </span>
               </button>
 
               <button
@@ -407,7 +416,9 @@ export default function ChatbotLayout() {
                 }}
                 type="button"
               >
-                <span className="material-symbols-outlined text-[24px]">search</span>
+                <span className="material-symbols-outlined text-[24px]">
+                  search
+                </span>
               </button>
             </div>
 
@@ -424,16 +435,19 @@ export default function ChatbotLayout() {
           <>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
+              {/* ✅ Logo/Text -> Dashboard */}
               <button
                 type="button"
-                onClick={() => navigate("/chat-start")}
+                onClick={() => navigate("/dashboard")}
                 className="flex items-center gap-3 cursor-pointer"
-                title="Zur Chat-Startseite"
+                title="Zum Dashboard"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
                   🎓
                 </div>
-                <span className="text-xl font-semibold tracking-tight">UNIAGENT</span>
+                <span className="text-xl font-semibold tracking-tight">
+                  UNIAGENT
+                </span>
               </button>
 
               <button
@@ -442,7 +456,9 @@ export default function ChatbotLayout() {
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 type="button"
               >
-                <span className="material-symbols-outlined text-[22px]">menu</span>
+                <span className="material-symbols-outlined text-[22px]">
+                  menu
+                </span>
               </button>
             </div>
 
@@ -453,7 +469,9 @@ export default function ChatbotLayout() {
                 onClick={handleNewChat}
                 type="button"
               >
-                <span className="material-symbols-outlined text-[22px]">add_2</span>
+                <span className="material-symbols-outlined text-[22px]">
+                  add_2
+                </span>
                 Neuer Chat
               </button>
 
@@ -465,21 +483,29 @@ export default function ChatbotLayout() {
                 }}
                 type="button"
               >
-                <span className="material-symbols-outlined text-[22px]">search</span>
+                <span className="material-symbols-outlined text-[22px]">
+                  search
+                </span>
                 Chats suchen
               </button>
 
               {/* Deine Chats */}
               <div className="mt-4">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">Deine Chats</h3>
+                <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                  Deine Chats
+                </h3>
 
                 <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-2">
                   {loadingChats && (
-                    <div className="text-xs text-gray-600 px-2 py-2">Lade Chats…</div>
+                    <div className="text-xs text-gray-600 px-2 py-2">
+                      Lade Chats…
+                    </div>
                   )}
 
                   {!loadingChats && chats.length === 0 && (
-                    <div className="text-xs text-gray-600 px-2 py-2">Noch keine Chats.</div>
+                    <div className="text-xs text-gray-600 px-2 py-2">
+                      Noch keine Chats.
+                    </div>
                   )}
 
                   {!loadingChats &&
@@ -508,10 +534,11 @@ export default function ChatbotLayout() {
                               <span className="material-symbols-outlined text-[18px] text-gray-700">
                                 chat_bubble
                               </span>
-                              <span className="truncate text-gray-800">{c.title || "Neuer Chat"}</span>
+                              <span className="truncate text-gray-800">
+                                {c.title || "Neuer Chat"}
+                              </span>
                             </button>
 
-                            {/* 3 Punkte immer sichtbar */}
                             <button
                               type="button"
                               data-chat-menu-btn="1"
@@ -537,7 +564,9 @@ export default function ChatbotLayout() {
               <div className="w-12 h-12 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-lg">
                 {getInitials(currentUser)}
               </div>
-              <div className="text-gray-800 font-medium leading-tight">{getFullName(currentUser)}</div>
+              <div className="text-gray-800 font-medium leading-tight">
+                {getFullName(currentUser)}
+              </div>
             </div>
           </>
         )}
@@ -548,7 +577,7 @@ export default function ChatbotLayout() {
         <Outlet />
       </main>
 
-      {/* FIXED Dropdown (nicht mehr abgeschnitten) */}
+      {/* FIXED Dropdown */}
       {menuOpenFor && (
         <div
           data-chat-menu="1"
@@ -563,7 +592,9 @@ export default function ChatbotLayout() {
               if (chat) openDeleteModal(chat);
             }}
           >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
+            <span className="material-symbols-outlined text-[18px]">
+              delete
+            </span>
             Chat löschen
           </button>
         </div>
@@ -587,7 +618,9 @@ export default function ChatbotLayout() {
                 onClick={() => setSearchOpen(false)}
                 aria-label="Schließen"
               >
-                <span className="material-symbols-outlined text-[22px]">close</span>
+                <span className="material-symbols-outlined text-[22px]">
+                  close
+                </span>
               </button>
             </div>
 
@@ -607,7 +640,9 @@ export default function ChatbotLayout() {
 
               <div className="mt-4 max-h-72 overflow-y-auto">
                 {filteredChats.length === 0 ? (
-                  <div className="text-sm text-gray-500 py-6 text-center">Keine Treffer.</div>
+                  <div className="text-sm text-gray-500 py-6 text-center">
+                    Keine Treffer.
+                  </div>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {filteredChats.map((c) => (
@@ -656,7 +691,9 @@ export default function ChatbotLayout() {
                 onClick={closeDeleteModal}
                 aria-label="Schließen"
               >
-                <span className="material-symbols-outlined text-[22px]">close</span>
+                <span className="material-symbols-outlined text-[22px]">
+                  close
+                </span>
               </button>
             </div>
 
