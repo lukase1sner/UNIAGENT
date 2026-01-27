@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// src/pages/ChatbotStart.jsx
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
 
@@ -7,6 +8,18 @@ export default function ChatbotStart() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+
+  // ✅ robust: welche ID haben wir wirklich?
+  const userId = useMemo(() => {
+    if (!currentUser) return null;
+    return (
+      currentUser.id || // falls du deine DB-user-id speicherst
+      currentUser.userId ||
+      currentUser.auth_user_id || // häufig bei Supabase
+      currentUser.authUserId ||
+      null
+    );
+  }, [currentUser]);
 
   const isReadyToSend = input.trim().length > 0 && !isCreating;
 
@@ -32,15 +45,22 @@ export default function ChatbotStart() {
 
   // --------------------------------------------------
   // Neuer Chat + erste Nachricht
-  // Erwartet Backend:
-  // POST /api/chats
-  // Body: { userId, firstMessage }
+  // POST /api/chats  Body: { userId, firstMessage }
   // -> { id }
   // --------------------------------------------------
   const sendMessage = async () => {
-    if (!isReadyToSend || !currentUser?.id) return;
-
     const trimmed = input.trim();
+    if (!trimmed || isCreating) return;
+
+    // ✅ wichtig: wenn userId fehlt, sichtbar melden (sonst wirkt's „kaputt“)
+    if (!userId) {
+      console.warn("Kein userId gefunden in uniagentUser:", currentUser);
+      alert(
+        "Du bist gerade nicht korrekt eingeloggt (userId fehlt). Bitte einmal neu einloggen."
+      );
+      return;
+    }
+
     setInput("");
     setIsCreating(true);
 
@@ -49,18 +69,15 @@ export default function ChatbotStart() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: currentUser.id,
+          userId,
           firstMessage: trimmed,
         }),
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
 
-      // 🔥 WICHTIG: chatId an Chatbot übergeben
       navigate("/chat", {
         state: {
           chatId: data.id,
@@ -70,6 +87,8 @@ export default function ChatbotStart() {
     } catch (err) {
       console.error("Chat erstellen fehlgeschlagen:", err);
       alert("Chat konnte nicht erstellt werden. Bitte versuche es erneut.");
+      // falls es fehlschlägt, Input zurückgeben
+      setInput(trimmed);
     } finally {
       setIsCreating(false);
     }
@@ -95,6 +114,14 @@ export default function ChatbotStart() {
           </span>
           , womit kann ich dir helfen?
         </p>
+
+        {/* optional mini debug hint (kannst du später entfernen) */}
+        {!userId && (
+          <p className="mt-2 text-xs text-red-600">
+            Hinweis: userId fehlt im LocalStorage (uniagentUser). Deshalb kann
+            nichts gesendet werden.
+          </p>
+        )}
       </div>
 
       {/* Eingabebox */}
@@ -120,23 +147,28 @@ export default function ChatbotStart() {
               className="w-full px-4 py-3 pl-14 pr-14 rounded-xl focus:outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && isReadyToSend && sendMessage()
-              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
               disabled={isCreating}
             />
 
             {/* Senden */}
             <button
+              type="button"
               onClick={sendMessage}
-              disabled={!isReadyToSend}
+              disabled={!isReadyToSend || !userId}
               className={
                 "absolute right-2 top-1/2 -translate-y-1/2 " +
                 "w-10 h-10 flex items-center justify-center rounded-full transition " +
-                (isReadyToSend
+                (isReadyToSend && userId
                   ? "bg-[#98C73C] text-white hover:bg-[#7da32f] cursor-pointer"
                   : "bg-[#cfe5a9] text-white cursor-default")
               }
+              title={!userId ? "Bitte neu einloggen (userId fehlt)" : "Senden"}
             >
               <span className="material-symbols-outlined text-[22px]">
                 arrow_upward_alt
@@ -156,6 +188,7 @@ export default function ChatbotStart() {
         {categories.map((cat) => (
           <button
             key={cat}
+            type="button"
             onClick={() => setInput(cat)}
             className="px-4 py-2 rounded-full bg-white/80 hover:bg-white shadow-sm border border-gray-200
                        text-gray-700 transition whitespace-nowrap"
