@@ -1,6 +1,6 @@
 // src/layouts/HaufigLayout.jsx
 import React, { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import "../styles/LandingLayout.css";
 
 export default function HaufigLayout() {
@@ -9,6 +9,7 @@ export default function HaufigLayout() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const gradientStyle = {
     backgroundImage:
@@ -27,6 +28,17 @@ export default function HaufigLayout() {
       console.warn("Konnte gespeicherten User nicht lesen:", e);
     }
   }, []);
+
+  // ✅ Mobile Menü offen -> Hintergrund scroll lock
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev || "";
+      };
+    }
+  }, [mobileMenuOpen]);
 
   const getInitials = (user) => {
     if (!user) return "ME";
@@ -55,20 +67,13 @@ export default function HaufigLayout() {
     navigate(path);
   };
 
-  // Sidebar Items (einheitlich für collapsed + expanded + mobile)
+  // ✅ aktiver Menüpunkt per Route
+  const isActive = (path) => location.pathname === path;
+
+  // ✅ Einheitliche Sidebar/Mobile Items (wie DashboardLayout)
   const navItems = [
-    {
-      icon: "team_dashboard",
-      label: "Dashboard",
-      path: "/dashboard",
-      // optional: falls du aktiv markieren willst, kannst du das später via useLocation machen
-      active: true,
-    },
-    {
-      icon: "question_exchange",
-      label: "Häufig gestellte Fragen",
-      path: "/haufig",
-    },
+    { icon: "team_dashboard", label: "Dashboard", path: "/dashboard" },
+    { icon: "question_exchange", label: "Häufig gestellte Fragen", path: "/haufig" },
     { icon: "link", label: "Nützliche Links", path: "/nuetzliche-links" },
     { icon: "chat", label: "Chatbot fragen", path: "/chat-start" },
     { icon: "person", label: "Mein Bereich", path: "/mein-bereich" },
@@ -80,7 +85,8 @@ export default function HaufigLayout() {
       <header className="w-full py-4 px-4 lg:py-6 lg:px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
-          onClick={() => navigate("/")}
+          // ✅ Klick auf Logo/UNIAGENT -> Dashboard (wie DashboardLayout)
+          onClick={() => navigate("/dashboard")}
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
             🎓
@@ -91,27 +97,49 @@ export default function HaufigLayout() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="hidden lg:inline-flex px-5 py-2 rounded-full border border-black font-medium hover:bg-black hover:text-white transition cursor-pointer"
+            className="hidden lg:inline-flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
+                       hover:bg-black hover:text-white transition cursor-pointer"
           >
+            {/* ✅ ICON VOR ABMELDEN (DESKTOP) */}
+            <span className="material-symbols-outlined text-[20px]">
+              logout
+            </span>
             Abmelden
           </button>
 
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="inline-flex lg:hidden w-10 h-10 items-center justify-center rounded-full hover:bg-white/70 cursor-pointer"
+            className="inline-flex lg:hidden w-10 h-10 items-center justify-center rounded-full
+                       hover:bg-white/70 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[24px]">menu</span>
           </button>
         </div>
       </header>
 
-      {/* MOBILE MENU */}
+      {/* MOBILE MENU (neues Design wie DashboardLayout) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-white lg:hidden">
-          <div className="flex justify-end px-4 py-4">
+        <div className="fixed inset-0 z-50 lg:hidden bg-white/55 backdrop-blur-xl">
+          {/* Top bar */}
+          <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-white/60">
+            <div
+              className="flex items-center gap-3 select-none cursor-pointer"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigate("/dashboard");
+              }}
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
+                🎓
+              </div>
+              <span className="text-lg font-semibold tracking-tight">
+                UNIAGENT
+              </span>
+            </div>
+
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#d6dfc9] transition cursor-pointer"
             >
               <span className="material-symbols-outlined text-[24px]">
                 close
@@ -119,29 +147,42 @@ export default function HaufigLayout() {
             </button>
           </div>
 
-          <div className="px-6 py-4 flex flex-col gap-4">
-            {navItems.map((item, idx) => (
-              <button
-                key={item.icon + idx}
-                onClick={() => goTo(item.path)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition ${
-                  item.icon === "team_dashboard"
-                    ? "bg-[#E4ECD9] hover:bg-[#d5dfc8]"
-                    : "hover:bg-[#E4ECD9]"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[22px]">
-                  {item.icon}
-                </span>
-                {item.label}
-              </button>
-            ))}
+          {/* Items + Logout */}
+          {/* ✅ Menü scrollt, Hintergrund nicht */}
+          <div className="px-4 py-5 flex flex-col h-[calc(100vh-72px)] overflow-y-auto overscroll-contain">
+            <nav className="flex flex-col gap-2">
+              {navItems.map((item) => {
+                const active = isActive(item.path);
 
-            <div className="mt-6">
+                return (
+                  <button
+                    key={item.icon}
+                    onClick={() => goTo(item.path)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-pointer font-medium ${
+                      active
+                        ? "bg-[#E4ECD9] hover:bg-[#d6dfc9] text-gray-900"
+                        : "text-gray-700 hover:bg-[#d6dfc9]"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[22px]">
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto pt-6">
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="w-full px-4 py-3 rounded-full bg-black text-white font-medium hover:bg-[#111] transition cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-black text-white font-medium
+                           hover:bg-[#111] transition cursor-pointer"
               >
+                {/* ✅ ICON VOR ABMELDEN (MOBILE) */}
+                <span className="material-symbols-outlined text-[20px]">
+                  logout
+                </span>
                 Abmelden
               </button>
             </div>
@@ -152,12 +193,12 @@ export default function HaufigLayout() {
       {/* MAIN */}
       <main className="flex-1 flex flex-col">
         {/* DESKTOP */}
-        <div className="hidden lg:flex flex-1" style={gradientStyle}>
-          {/* SIDEBAR */}
+        <div className="hidden lg:flex flex-1 relative isolate" style={gradientStyle}>
+          {/* SIDEBAR (GLASS) - neues Design wie DashboardLayout */}
           <aside
             className={`${
               collapsed ? "w-20" : "w-72"
-            } bg-white shadow-sm flex flex-col p-4 transition-all duration-300`}
+            } relative z-50 bg-white/35 backdrop-blur-xl border-r border-white/40 shadow-none flex flex-col p-4 transition-all duration-300`}
           >
             {collapsed ? (
               <div className="flex flex-col items-center h-full">
@@ -165,46 +206,53 @@ export default function HaufigLayout() {
                 <div className="relative group">
                   <button
                     onClick={() => setCollapsed(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#d6dfc9] transition cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[24px]">
                       menu
                     </span>
                   </button>
+
+                  {/* Tooltip */}
                   <div
                     className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
-                                  bg-black text-white text-xs rounded px-2 py-1 opacity-0
-                                  group-hover:opacity-100 transition-opacity"
+                               bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                               group-hover:opacity-100 transition-opacity z-[9999]"
                   >
                     Menü maximieren
                   </div>
                 </div>
 
                 <div className="flex flex-col items-center gap-4 mt-4">
-                  {navItems.map((item) => (
-                    <div key={item.icon} className="relative group">
-                      <button
-                        onClick={() => goTo(item.path)}
-                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition cursor-pointer ${
-                          item.icon === "team_dashboard"
-                            ? "bg-[#E4ECD9] hover:bg-[#d5dfc8]"
-                            : "hover:bg-[#E4ECD9]"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[24px]">
-                          {item.icon}
-                        </span>
-                      </button>
+                  {navItems.map((item) => {
+                    const active = isActive(item.path);
 
-                      <div
-                        className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
-                                      bg-black text-white text-xs rounded px-2 py-1 opacity-0
-                                      group-hover:opacity-100 transition-opacity"
-                      >
-                        {item.label}
+                    return (
+                      <div key={item.icon} className="relative group">
+                        <button
+                          onClick={() => goTo(item.path)}
+                          className={`w-10 h-10 flex items-center justify-center rounded-lg transition cursor-pointer ${
+                            active
+                              ? "bg-[#E4ECD9] hover:bg-[#d6dfc9]"
+                              : "hover:bg-[#d6dfc9]"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[24px]">
+                            {item.icon}
+                          </span>
+                        </button>
+
+                        {/* Tooltip */}
+                        <div
+                          className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
+                                     bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                                     group-hover:opacity-100 transition-opacity z-[9999]"
+                        >
+                          {item.label}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="mt-auto mb-2">
@@ -219,16 +267,18 @@ export default function HaufigLayout() {
                   <div className="relative group">
                     <button
                       onClick={() => setCollapsed(true)}
-                      className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#E4ECD9] transition cursor-pointer"
+                      className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#d6dfc9] transition cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[22px]">
                         menu
                       </span>
                     </button>
+
+                    {/* Tooltip */}
                     <div
                       className="pointer-events-none absolute right-full mr-2 top-1/2 -translate-y-1/2
-                                    bg-black text-white text-xs rounded px-2 py-1 opacity-0
-                                    group-hover:opacity-100 transition-opacity"
+                                 bg-black text-white text-xs rounded px-2 py-1 opacity-0
+                                 group-hover:opacity-100 transition-opacity z-[9999]"
                     >
                       Menü minimieren
                     </div>
@@ -236,22 +286,26 @@ export default function HaufigLayout() {
                 </div>
 
                 <nav className="flex flex-col gap-4 flex-1">
-                  {navItems.map((item) => (
-                    <button
-                      key={item.icon}
-                      onClick={() => goTo(item.path)}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer text-gray-700 ${
-                        item.icon === "team_dashboard"
-                          ? "bg-[#E4ECD9] hover:bg-[#d5dfc8]"
-                          : "hover:bg-[#E4ECD9]"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[22px]">
-                        {item.icon}
-                      </span>
-                      {item.label}
-                    </button>
-                  ))}
+                  {navItems.map((item) => {
+                    const active = isActive(item.path);
+
+                    return (
+                      <button
+                        key={item.icon}
+                        onClick={() => goTo(item.path)}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-xl transition cursor-pointer font-medium ${
+                          active
+                            ? "bg-[#E4ECD9] hover:bg-[#d6dfc9] text-gray-900"
+                            : "text-gray-700 hover:bg-[#d6dfc9]"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[22px]">
+                          {item.icon}
+                        </span>
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </nav>
 
                 <div className="mt-6 flex items-center gap-3 cursor-pointer">
@@ -266,7 +320,7 @@ export default function HaufigLayout() {
             )}
           </aside>
 
-          <section className="flex-1 flex flex-col">
+          <section className="flex-1 flex flex-col relative z-0">
             <Outlet />
           </section>
         </div>
@@ -283,16 +337,16 @@ export default function HaufigLayout() {
       <footer className="bg-[#E4ECD9] mt-0 py-8">
         {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
-          <a href="#funktionen" className="hover:text-gray-800 transition">
+          <a href="#funktionen" className="hover:underline transition">
             Funktionen
           </a>
-          <a href="#kontakt" className="hover:text-gray-800 transition">
+          <a href="#kontakt" className="hover:underline transition">
             Kontakt
           </a>
-          <a href="/impressum" className="hover:text-gray-800 transition">
+          <a href="/impressum" className="hover:underline transition">
             Impressum
           </a>
-          <a href="/datenschutz" className="hover:text-gray-800 transition">
+          <a href="/datenschutz" className="hover:underline transition">
             Datenschutz
           </a>
 
@@ -303,28 +357,16 @@ export default function HaufigLayout() {
 
         {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
-          <a
-            href="#funktionen"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="#funktionen" className="hover:underline transition cursor-pointer">
             Funktionen
           </a>
-          <a
-            href="#kontakt"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="#kontakt" className="hover:underline transition cursor-pointer">
             Kontakt
           </a>
-          <a
-            href="/impressum"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="/impressum" className="hover:underline transition cursor-pointer">
             Impressum
           </a>
-          <a
-            href="/datenschutz"
-            className="hover:text-gray-800 transition cursor-pointer"
-          >
+          <a href="/datenschutz" className="hover:underline transition cursor-pointer">
             Datenschutz
           </a>
 
