@@ -8,15 +8,15 @@ export default function ChatbotLayout() {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Chats
-  const [chats, setChats] = useState([]); // [{ id, title, createdAt, updatedAt }]
+  const [chats, setChats] = useState([]);
   const [loadingChats, setLoadingChats] = useState(false);
 
   // Search modal
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
-  // 3-dots menu (pro Chat)
-  const [menuOpenFor, setMenuOpenFor] = useState(null); // chatId | null
+  // 3-dots menu
+  const [menuOpenFor, setMenuOpenFor] = useState(null);
   const menuRef = useRef(null);
 
   const navigate = useNavigate();
@@ -74,8 +74,7 @@ export default function ChatbotLayout() {
   };
 
   // ---------------------------------------------
-  // Aktiver Chat: aus navigation state + fallback via sessionStorage
-  // (weil location.state nach Reload leer sein kann)
+  // Aktiver Chat: state + fallback sessionStorage
   // ---------------------------------------------
   const [activeChatId, setActiveChatId] = useState(() => {
     return sessionStorage.getItem("uniagentActiveChatId") || null;
@@ -92,7 +91,6 @@ export default function ChatbotLayout() {
   // ---------------------------------------------
   // Chats laden (TOKEN-BASIERT)
   // GET /api/chats
-  // -> List<ChatSummaryDto>
   // ---------------------------------------------
   const loadChats = async () => {
     const token = getToken();
@@ -119,16 +117,21 @@ export default function ChatbotLayout() {
       }
 
       const data = await res.json().catch(() => null);
-      const list = Array.isArray(data) ? data : Array.isArray(data?.chats) ? data.chats : [];
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.chats)
+        ? data.chats
+        : [];
 
-      const normalized = list.map((c) => ({
-        id: c.id || c.chatId,
-        title: c.title || "Neuer Chat",
-        createdAt: c.createdAt || c.created_at || null,
-        updatedAt: c.updatedAt || c.updated_at || null,
-      })).filter((c) => Boolean(c.id));
+      const normalized = list
+        .map((c) => ({
+          id: c.id || c.chatId,
+          title: c.title || "Neuer Chat",
+          createdAt: c.createdAt || c.created_at || null,
+          updatedAt: c.updatedAt || c.updated_at || null,
+        }))
+        .filter((c) => Boolean(c.id));
 
-      // Sort: zuletzt aktiv oben
       normalized.sort((a, b) => {
         const ad = new Date(a.updatedAt || a.createdAt || 0).getTime();
         const bd = new Date(b.updatedAt || b.createdAt || 0).getTime();
@@ -144,13 +147,11 @@ export default function ChatbotLayout() {
     }
   };
 
-  // initial load + when token changes
   useEffect(() => {
     loadChats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.token, API_BASE_URL]);
 
-  // reload on focus
   useEffect(() => {
     const onFocus = () => loadChats();
     window.addEventListener("focus", onFocus);
@@ -158,7 +159,6 @@ export default function ChatbotLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // reload when Chatbot.jsx signals something changed
   useEffect(() => {
     const onChanged = () => loadChats();
     window.addEventListener("uniagent:chatsChanged", onChanged);
@@ -179,7 +179,7 @@ export default function ChatbotLayout() {
   }, []);
 
   // ---------------------------------------------
-  // Neuer Chat -> Startseite
+  // Actions
   // ---------------------------------------------
   const handleNewChat = () => {
     setMenuOpenFor(null);
@@ -190,9 +190,6 @@ export default function ChatbotLayout() {
     navigate("/chat-start", { replace: false });
   };
 
-  // ---------------------------------------------
-  // Chat öffnen
-  // ---------------------------------------------
   const openChat = (chatId) => {
     if (!chatId) return;
     setMenuOpenFor(null);
@@ -203,10 +200,6 @@ export default function ChatbotLayout() {
     navigate("/chat", { state: { chatId } });
   };
 
-  // ---------------------------------------------
-  // Chat löschen (TOKEN-BASIERT)
-  // DELETE /api/chats/{chatId}
-  // ---------------------------------------------
   const deleteChat = async (chatId) => {
     const token = getToken();
     if (!token || !chatId) return;
@@ -227,24 +220,21 @@ export default function ChatbotLayout() {
         throw new Error(`HTTP ${res.status} ${t}`);
       }
 
-      // Wenn gerade aktiver Chat gelöscht: auf Start
       if (activeChatId === chatId) {
         setActiveChatId(null);
         sessionStorage.removeItem("uniagentActiveChatId");
         navigate("/chat-start");
       }
 
-      // Sidebar aktualisieren
       loadChats();
     } catch (e) {
       console.error("Chat löschen Fehler:", e);
-      // Reload zur Sicherheit
       loadChats();
     }
   };
 
   // ---------------------------------------------
-  // Suche: im Modal nur Frontend-Filter (schnell & robust)
+  // Suche: Frontend-Filter
   // ---------------------------------------------
   const filteredChats = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
@@ -267,9 +257,7 @@ export default function ChatbotLayout() {
         } bg-[#E4ECD9] shadow-sm flex flex-col p-4 transition-all duration-300`}
       >
         {collapsed ? (
-          /* Eingeklappte Sidebar */
           <div className="flex flex-col items-center justify-between h-full">
-            {/* Logo + Actions */}
             <div className="flex flex-col items-center gap-4 mt-1">
               <button
                 type="button"
@@ -317,7 +305,6 @@ export default function ChatbotLayout() {
               </button>
             </div>
 
-            {/* Avatar */}
             <div className="mb-2">
               <div
                 className="w-10 h-10 rounded-full bg-[#98C73C] text-black flex items-center justify-center font-semibold text-sm"
@@ -328,7 +315,6 @@ export default function ChatbotLayout() {
             </div>
           </div>
         ) : (
-          /* Ausgeklappte Sidebar */
           <>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -413,8 +399,8 @@ export default function ChatbotLayout() {
                           key={c.id}
                           className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
                             active
-                              ? "bg-white shadow-sm ring-2 ring-[#98C73C]/30"
-                              : "bg-white/80 hover:bg-white"
+                              ? "bg-gray-100"
+                              : "bg-white hover:bg-gray-50"
                           }`}
                         >
                           <button
@@ -434,7 +420,7 @@ export default function ChatbotLayout() {
                           {/* 3 Punkte (nur auf Hover sichtbar) */}
                           <button
                             type="button"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               setMenuOpenFor((prev) =>
