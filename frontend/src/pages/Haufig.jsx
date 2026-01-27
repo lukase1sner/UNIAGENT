@@ -1,11 +1,9 @@
 // src/pages/Haufig.jsx
 import React, { useEffect, useState } from "react";
 import "../styles/scrollAnimations.css";
-import { N8N_WEBHOOK_URL } from "../config";
 
 export default function Haufig() {
-  const [faqs, setFaqs] = useState([]); // { q, a, rank, count, lastAsked, answerLoaded }
-  const [totalQuestions, setTotalQuestions] = useState(null);
+  const [faqs, setFaqs] = useState([]); // { q, a, rank, count, lastAsked }
   const [loading, setLoading] = useState(true);
   const [openIndex, setOpenIndex] = useState(null);
 
@@ -31,23 +29,19 @@ export default function Haufig() {
       }
     };
 
-    // ✅ In Production darf hier NICHT "/api/top-faq" stehen (Vite-Proxy gilt nur lokal)
+    // ✅ TopFAQ Endpoint (liefert bei dir: [ { success:true, topQuestions:[...]} ])
     const TOPFAQ_URL = "https://bw13.app.n8n.cloud/webhook/api/top-faq";
 
-    const normalizeTopFaqResponse = (data) => {
-      if (data?.success && Array.isArray(data?.topQuestions)) {
-        const statsTotal = data?.statistics?.totalQuestions;
-        setTotalQuestions(
-          typeof statsTotal === "number"
-            ? statsTotal
-            : Number.isFinite(Number(statsTotal))
-            ? Number(statsTotal)
-            : null
-        );
+    const normalizeTopFaqResponse = (raw) => {
+      // ✅ wenn n8n ein Array liefert -> erstes Element nehmen
+      const data = Array.isArray(raw) ? raw[0] : raw;
 
+      if (data?.success && Array.isArray(data?.topQuestions)) {
         return data.topQuestions
           .map((item, index) => {
             const q = item?.question ?? item?.q ?? "";
+            const answer = item?.answer ?? item?.a ?? "";
+
             const count =
               typeof item?.count === "number"
                 ? item.count
@@ -57,45 +51,41 @@ export default function Haufig() {
 
             const lastAsked = formatLastAsked(item?.lastAsked);
 
-            // Starttext beim Aufklappen: Meta + Hinweis
+            // Meta-Text (unten an die Antwort)
             const metaParts = [];
             if (count !== null) metaParts.push(`🔥 ${count}x gefragt`);
             metaParts.push(`Zuletzt: ${lastAsked}`);
+            const metaText = metaParts.join(" · ");
 
             return {
               q,
-              a: `${metaParts.join(" · ")}\n\nAntwort laden…`,
+              a: answer ? `${answer}\n\n${metaText}` : `${metaText}\n\nAntwort laden…`,
               rank: index + 1,
               count,
               lastAsked,
-              answerLoaded: false,
             };
           })
           .filter((x) => x.q)
           .slice(0, 10);
       }
 
-      setTotalQuestions(null);
       return [];
-    };
-
-    const fetchJson = async (url) => {
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
     };
 
     const loadTopFaqs = async () => {
       try {
-        const data = await fetchJson(TOPFAQ_URL);
-        const normalized = normalizeTopFaqResponse(data);
+        const res = await fetch(TOPFAQ_URL, { signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.json();
+
+        const normalized = normalizeTopFaqResponse(raw);
         setFaqs(normalized);
-        setLoading(false);
       } catch (err) {
-        if (err?.name === "AbortError") return;
-        console.error("TopFAQ Fehler:", err);
-        setFaqs([]);
-        setTotalQuestions(null);
+        if (err?.name !== "AbortError") {
+          console.error("TopFAQ Fehler:", err);
+          setFaqs([]);
+        }
+      } finally {
         setLoading(false);
       }
     };
@@ -108,95 +98,8 @@ export default function Haufig() {
     };
   }, []);
 
-  // Holt die echte Antwort (FAQ) über deinen alten Webhook
-  const fetchAnswerForQuestion = async (question) => {
-    // ✅ n8n URL kommt jetzt aus ENV (Vercel) über src/config.js
-    const OLD_FAQ_WEBHOOK =
-      N8N_WEBHOOK_URL ||
-      "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
-
-    const res = await fetch(OLD_FAQ_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      // Wichtig: wir schicken die Frage mit, damit n8n die passende Antwort geben kann
-      body: JSON.stringify({ source: "faq", question }),
-    });
-
-    if (!res.ok) throw new Error(`FAQ HTTP ${res.status}`);
-
-    const data = await res.json();
-
-    // n8n kann unterschiedlich antworten:
-    const payload = Array.isArray(data) ? data : data?.output ?? data;
-
-    // Fall 1: Array mit FAQs -> passende finden
-    if (Array.isArray(payload)) {
-      const normalized = payload.map((x) => ({
-        q: x?.q ?? x?.question ?? "",
-        a: x?.a ?? x?.answer ?? "",
-      }));
-
-      const hit =
-        normalized.find(
-          (x) => x.q?.trim().toLowerCase() === question.trim().toLowerCase()
-        ) || normalized[0];
-
-      return hit?.a || "";
-    }
-
-    // Fall 2: einzelnes Objekt mit answer
-    const a = payload?.a ?? payload?.answer ?? "";
-    return a || "";
-  };
-
-  const toggle = async (idx) => {
+  const toggle = (idx) => {
     setOpenIndex((prev) => (prev === idx ? null : idx));
-
-    // Wenn wir gerade öffnen und Antwort noch nicht geladen ist: nachladen
-    const item = faqs[idx];
-    const willOpen = openIndex !== idx;
-
-    if (willOpen && item && !item.answerLoaded) {
-      try {
-        const answer = await fetchAnswerForQuestion(item.q);
-
-        setFaqs((prev) =>
-          prev.map((x, i) => {
-            if (i !== idx) return x;
-
-            const metaParts = [];
-            if (x.count !== null && x.count !== undefined)
-              metaParts.push(`🔥 ${x.count}x gefragt`);
-            metaParts.push(`Zuletzt: ${x.lastAsked ?? "Unbekannt"}`);
-
-            const metaText = metaParts.join(" · ");
-
-            return {
-              ...x,
-              a: answer
-                ? `${answer}\n\n${metaText}`
-                : `Keine Antwort gefunden.\n\n${metaText}`,
-              answerLoaded: true,
-            };
-          })
-        );
-      } catch (err) {
-        console.error("Antwort laden Fehler:", err);
-        setFaqs((prev) =>
-          prev.map((x, i) =>
-            i === idx
-              ? {
-                  ...x,
-                  a: `Antwort konnte nicht geladen werden.\n\n🔥 ${
-                    x.count ?? "—"
-                  }x gefragt · Zuletzt: ${x.lastAsked ?? "Unbekannt"}`,
-                  answerLoaded: true,
-                }
-              : x
-          )
-        );
-      }
-    }
   };
 
   return (
@@ -210,22 +113,6 @@ export default function Haufig() {
         <p className="mt-4 text-base md:text-lg font-semibold text-[#6D5EF8]">
           Top 10 Fragen und unsere Antworten
         </p>
-      </div>
-
-      {/* Stats Box */}
-      <div className="fade-element mt-8 max-w-5xl mx-auto">
-        <div className="rounded-2xl p-6 md:p-7 shadow-sm border border-gray-100 bg-gradient-to-br from-[#667eea] to-[#764ba2] text-white">
-          <div className="flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-extrabold leading-none">
-                {totalQuestions ?? (loading ? "…" : "—")}
-              </div>
-              <div className="mt-2 text-sm md:text-base opacity-90 font-medium">
-                Fragen gesamt
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* FAQ Container */}
