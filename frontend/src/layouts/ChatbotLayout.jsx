@@ -242,6 +242,13 @@ export default function ChatbotLayout() {
     return chats.filter((c) => (c.title || "").toLowerCase().includes(q));
   }, [chats, searchValue]);
 
+  // ---------------------------------------------
+  // "Aktuell" Label nur einmal anzeigen (vor erstem aktiven Chat)
+  // ---------------------------------------------
+  const hasActive = Boolean(activeChatId);
+  const activeIndex = hasActive ? chats.findIndex((c) => c.id === activeChatId) : -1;
+  const showAktuellLabel = hasActive && activeIndex >= 0;
+
   return (
     <div
       className="w-screen h-screen flex"
@@ -262,7 +269,7 @@ export default function ChatbotLayout() {
               <button
                 type="button"
                 onClick={() => navigate("/chat-start")}
-                className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center font-semibold text-sm shadow-md"
+                className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center font-semibold text-sm shadow-md cursor-pointer"
                 title="UNIAGENT"
               >
                 🎓
@@ -271,7 +278,7 @@ export default function ChatbotLayout() {
               <button
                 onClick={() => setCollapsed(false)}
                 title="Sidebar öffnen"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 type="button"
               >
                 <span className="material-symbols-outlined text-[24px]">
@@ -281,7 +288,7 @@ export default function ChatbotLayout() {
 
               <button
                 title="Neuer Chat"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 onClick={handleNewChat}
                 type="button"
               >
@@ -292,7 +299,7 @@ export default function ChatbotLayout() {
 
               <button
                 title="Chats suchen"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 onClick={() => {
                   setSearchOpen(true);
                   setSearchValue("");
@@ -321,7 +328,7 @@ export default function ChatbotLayout() {
               <button
                 type="button"
                 onClick={() => navigate("/chat-start")}
-                className="flex items-center gap-3"
+                className="flex items-center gap-3 cursor-pointer"
                 title="Zur Chat-Startseite"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
@@ -335,7 +342,7 @@ export default function ChatbotLayout() {
               <button
                 onClick={() => setCollapsed(true)}
                 title="Sidebar einklappen"
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition"
+                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/70 transition cursor-pointer"
                 type="button"
               >
                 <span className="material-symbols-outlined text-[22px]">
@@ -391,70 +398,77 @@ export default function ChatbotLayout() {
                   )}
 
                   {!loadingChats &&
-                    chats.map((c) => {
+                    chats.map((c, idx) => {
                       const active = activeChatId === c.id;
 
                       return (
-                        <div
-                          key={c.id}
-                          className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                            active
-                              ? "bg-gray-100"
-                              : "bg-white hover:bg-gray-50"
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => openChat(c.id)}
-                            className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                            title={c.title}
-                          >
-                            <span className="material-symbols-outlined text-[18px] text-gray-700">
-                              chat_bubble
-                            </span>
-                            <span className="truncate text-gray-800">
-                              {c.title || "Neuer Chat"}
-                            </span>
-                          </button>
-
-                          {/* 3 Punkte (nur auf Hover sichtbar) */}
-                          <button
-                            type="button"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMenuOpenFor((prev) =>
-                                prev === c.id ? null : c.id
-                              );
-                            }}
-                            aria-label="Chat Optionen"
-                            title="Optionen"
-                          >
-                            <span className="material-symbols-outlined text-[20px] text-gray-700">
-                              more_horiz
-                            </span>
-                          </button>
-
-                          {/* Dropdown */}
-                          {menuOpenFor === c.id && (
-                            <div
-                              ref={menuRef}
-                              className="absolute right-2 top-10 z-50 w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                type="button"
-                                className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
-                                onClick={() => deleteChat(c.id)}
-                              >
-                                <span className="material-symbols-outlined text-[18px]">
-                                  delete
-                                </span>
-                                Chat löschen
-                              </button>
+                        <React.Fragment key={c.id}>
+                          {showAktuellLabel && idx === activeIndex && (
+                            <div className="px-2 pt-1 pb-1 text-[11px] font-semibold tracking-wide text-gray-600 uppercase">
+                              Aktuell
                             </div>
                           )}
-                        </div>
+
+                          <div
+                            className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
+                              active
+                                ? "bg-gray-200" // ✅ dunkler als vorher
+                                : "bg-white hover:bg-gray-50"
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => openChat(c.id)}
+                              className="flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
+                              title={c.title}
+                            >
+                              <span className="material-symbols-outlined text-[18px] text-gray-700">
+                                chat_bubble
+                              </span>
+                              <span className="truncate text-gray-800">
+                                {c.title || "Neuer Chat"}
+                              </span>
+                            </button>
+
+                            {/* 3 Punkte (nur auf Hover sichtbar) */}
+                            <button
+                              type="button"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-300 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpenFor((prev) =>
+                                  prev === c.id ? null : c.id
+                                );
+                              }}
+                              aria-label="Chat Optionen"
+                              title="Optionen"
+                            >
+                              <span className="material-symbols-outlined text-[20px] text-gray-700">
+                                more_horiz
+                              </span>
+                            </button>
+
+                            {/* Dropdown */}
+                            {menuOpenFor === c.id && (
+                              <div
+                                ref={menuRef}
+                                className="absolute right-2 top-10 z-50 w-44 rounded-xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 cursor-pointer"
+                                  onClick={() => deleteChat(c.id)}
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">
+                                    delete
+                                  </span>
+                                  Chat löschen
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </React.Fragment>
                       );
                     })}
                 </div>
@@ -493,7 +507,7 @@ export default function ChatbotLayout() {
               <div className="font-semibold text-gray-900">Chats suchen</div>
               <button
                 type="button"
-                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center"
+                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center cursor-pointer"
                 onClick={() => setSearchOpen(false)}
                 aria-label="Schließen"
               >
@@ -529,7 +543,7 @@ export default function ChatbotLayout() {
                         key={c.id}
                         type="button"
                         onClick={() => openChat(c.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-left"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-left cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[20px] text-gray-700">
                           chat_bubble
@@ -554,7 +568,7 @@ export default function ChatbotLayout() {
                 <button
                   type="button"
                   onClick={() => setSearchOpen(false)}
-                  className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium hover:bg-gray-50"
+                  className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium hover:bg-gray-50 cursor-pointer"
                 >
                   Schließen
                 </button>
