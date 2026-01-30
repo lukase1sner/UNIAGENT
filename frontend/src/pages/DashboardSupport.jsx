@@ -11,7 +11,7 @@ export default function DashboardSupport() {
         subject: "Fehler bei Prüfungsanmeldung",
         question:
           "Ich habe mich für das Modul Datenbanken und Informationssysteme angemeldet. Die Anmeldung wird mir im Portal aber nicht angezeigt. Was kann ich da tun?",
-        requesterName: "Peter Becker",
+        requesterName: "Natacha Megnegne",
         createdAt: "Heute, 10:12",
         status: "open",
       },
