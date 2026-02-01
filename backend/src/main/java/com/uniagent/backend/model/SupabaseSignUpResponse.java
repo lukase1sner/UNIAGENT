@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/model/SupabaseSignUpResponse.java
 package com.uniagent.backend.model;
 
 import java.util.Map;

@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/dto/RegisterResponse.java
 package com.uniagent.backend.dto;
 
 public class RegisterResponse {
@@ -13,8 +12,6 @@ public class RegisterResponse {
         this.success = success;
         this.message = message;
     }
-
-    // Getter & Setter
 
     public boolean isSuccess() {
         return success;

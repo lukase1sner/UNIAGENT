@@ -1,4 +1,3 @@
-// src/pages/NuetzlicheLinks.jsx
 import React, { useEffect } from "react";
 import "../styles/scrollAnimations.css";
 
@@ -20,7 +19,7 @@ export default function NuetzlicheLinks() {
       description:
         "Zugriff auf die Hochschulbibliothek, Kataloge, Ausleihen und wissenschaftliche Ressourcen.",
       href: "https://www.w-hs.de/bibliothek/",
-      icon: "book_2", // ✅ NEU
+      icon: "book_2",
       accent: "from-[#10B981] to-[#84CC16]",
     },
     {
@@ -36,7 +35,7 @@ export default function NuetzlicheLinks() {
       description:
         "Informationen zu Prüfungsanmeldung, Fristen und zuständigen Prüfungsämtern.",
       href: "https://www.w-hs.de/pruefungsaemter/",
-      icon: "contact_page", // ✅ NEU
+      icon: "contact_page",
       accent: "from-[#F59E0B] to-[#FB7185]",
     },
     {
@@ -52,7 +51,7 @@ export default function NuetzlicheLinks() {
       description:
         "Verwaltung von Prüfungsanmeldungen, Notenübersicht und Leistungsnachweisen.",
       href: "https://qis.w-hs.de/qisserver/rds?state=user&type=0",
-      icon: "assignment", // ✅ NEU (sehr passend)
+      icon: "assignment",
       accent: "from-[#06B6D4] to-[#14B8A6]",
     },
     {
@@ -67,7 +66,6 @@ export default function NuetzlicheLinks() {
 
   return (
     <div className="w-full h-full px-4 pt-6 pb-10 md:px-10">
-      {/* Header */}
       <div className="fade-element mb-6">
         <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
           Nützliche Links
@@ -77,7 +75,6 @@ export default function NuetzlicheLinks() {
         </p>
       </div>
 
-      {/* Links */}
       <div className="fade-element w-full">
         <div className="rounded-3xl bg-white/85 border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-5 md:px-6 py-4 border-b border-gray-200 flex items-center justify-between">

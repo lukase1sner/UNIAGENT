@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/service/SupabaseDatabaseClient.java
 package com.uniagent.backend.service;
 
 import com.uniagent.backend.dto.ChatMessageDto;
@@ -22,16 +21,6 @@ public class SupabaseDatabaseClient {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /**
-     * Legt einen neuen Benutzer in deiner eigenen Postgres-Tabelle an.
-     *
-     * Erwartet eine Tabelle z.B. "users" mit Spalten:
-     *   id           uuid (mit Default gen_random_uuid() oder ähnlichem)
-     *   auth_user_id uuid
-     *   first_name   text
-     *   last_name    text
-     *   role         text
-     */
     public void insertUser(String authUserId, String firstName, String lastName, String role) {
         String sql = """
             INSERT INTO users (auth_user_id, first_name, last_name, role)
@@ -41,9 +30,6 @@ public class SupabaseDatabaseClient {
         jdbcTemplate.update(sql, authUserId, firstName, lastName, role);
     }
 
-    /**
-     * Liest einen Benutzer anhand der Supabase auth_user_id.
-     */
     public Optional<UserRecord> findByAuthUserId(String authUserId) {
         String sql = """
             SELECT id, auth_user_id, first_name, last_name, role
@@ -71,9 +57,6 @@ public class SupabaseDatabaseClient {
         }
     }
 
-    /**
-     * Aktualisiert Vorname/Nachname für den User in deiner users-Tabelle.
-     */
     public void updateUserNames(String authUserId, String firstName, String lastName) {
         String sql = """
             UPDATE users
@@ -82,11 +65,6 @@ public class SupabaseDatabaseClient {
         """;
         jdbcTemplate.update(sql, firstName, lastName, authUserId);
     }
-
-    // =========================================================
-    // Chats + Messages (Persistenz für Sidebar + Suche + Löschen)
-    // Voraussetzung: Tabellen public.chats & public.chat_messages
-    // =========================================================
 
     public UUID createChat(UUID authUserId, String title) {
         UUID id = UUID.randomUUID();
@@ -136,7 +114,6 @@ public class SupabaseDatabaseClient {
     }
 
     public List<ChatMessageDto> getMessages(UUID authUserId, UUID chatId) {
-        // Ownership check
         Integer cnt = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM public.chats WHERE id = ?::uuid AND auth_user_id = ?::uuid",
                 Integer.class,
@@ -167,7 +144,6 @@ public class SupabaseDatabaseClient {
     }
 
     public void addMessage(UUID authUserId, UUID chatId, String sender, String content) {
-        // Ownership check
         Integer cnt = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM public.chats WHERE id = ?::uuid AND auth_user_id = ?::uuid",
                 Integer.class,
@@ -207,14 +183,9 @@ public class SupabaseDatabaseClient {
                 chatId.toString(),
                 authUserId.toString()
         );
-        // chat_messages werden per ON DELETE CASCADE automatisch gelöscht
         return affected > 0;
     }
 
-    /**
-     * Optional: setzt den Titel automatisch anhand der ersten User-Nachricht,
-     * aber nur wenn der Titel aktuell noch "Neuer Chat" ist.
-     */
     public void maybeAutoTitle(UUID authUserId, UUID chatId, String firstUserMessage) {
         String current;
         try {
@@ -290,9 +261,6 @@ public class SupabaseDatabaseClient {
         return result;
     }
 
-    /**
-     * Kleiner DTO-Record für den Benutzer aus deiner eigenen Tabelle.
-     */
     public record UserRecord(
             String id,
             String authUserId,

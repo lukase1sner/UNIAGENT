@@ -3,15 +3,15 @@ import { useNavigate } from "react-router-dom";
 import "../styles/scrollAnimations.css";
 
 export default function Dashboard() {
-  const [view, setView] = useState("grid"); // "grid" | "list"
-  const [hoveredCard, setHoveredCard] = useState(null); // für Pfeilfarbe pro Karte
+  const [view, setView] = useState("grid");
+  const [hoveredCard, setHoveredCard] = useState(null);
   const navigate = useNavigate();
 
-  // Fade-In Animation beim ersten Laden und bei Wechsel Grid/Liste
+
   useEffect(() => {
     const elements = document.querySelectorAll(".fade-element");
 
-    // Sichtbarkeit zurücksetzen
+
     elements.forEach((el) => el.classList.remove("visible"));
 
     const timeout = setTimeout(() => {
@@ -65,7 +65,7 @@ export default function Dashboard() {
     return "";
   };
 
-  // Navigation für Karten-Pfeil
+
   const handleCardClick = (id) => {
     switch (id) {
       case "haufig":
@@ -87,7 +87,6 @@ export default function Dashboard() {
 
   return (
     <div className="w-full h-full px-4 pt-4 pb-6 md:px-8 md:pt-4 md:pb-8">
-      {/* Headerzeile im Inhalt – mit Fade */}
       <div className="fade-element flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900">
@@ -98,7 +97,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* View Switch: Grid / Liste – nur auf lg+ sichtbar */}
         <div className="hidden lg:inline-flex items-center rounded-full bg-white/90 border border-gray-200 shadow-sm px-1 py-1">
           <button
             type="button"
@@ -136,7 +134,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* DESKTOP (lg+): Grid / Liste Umschaltung */}
       <div className="hidden lg:block">
         {isGrid ? (
           <div className="grid gap-6 md:gap-8 md:grid-cols-2">
@@ -244,7 +241,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* MOBILE + TABLET (<lg) */}
       <div className="lg:hidden space-y-4">
         {cards.map((card, index) => (
           <div

@@ -1,4 +1,3 @@
-// src/hooks/useScrollFadeIn.js
 import { useEffect } from "react";
 
 export default function useScrollFadeIn(deps = []) {
@@ -17,7 +16,7 @@ export default function useScrollFadeIn(deps = []) {
         });
       },
       {
-        threshold: 0.15, // weicher Trigger
+        threshold: 0.15,
         rootMargin: "0px 0px -5% 0px",
       }
     );

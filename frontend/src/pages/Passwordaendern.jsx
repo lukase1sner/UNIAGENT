@@ -1,4 +1,3 @@
-// src/pages/Passwordaendern.jsx
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
@@ -6,7 +5,6 @@ import { API_BASE_URL } from "../config";
 export default function Passwordaendern() {
   const navigate = useNavigate();
 
-  // Email aus localStorage (wie bei deinem Login)
   const emailFromStorage = useMemo(() => {
     try {
       const raw = localStorage.getItem("uniagentUser");
@@ -32,8 +30,6 @@ export default function Passwordaendern() {
 
   const [serverError, setServerError] = useState("");
   const [serverSuccess, setServerSuccess] = useState("");
-
-  // ---------- Validierung ----------
 
   const validateNewPassword = (value, emailValue) => {
     if (!value) return "Bitte ein neues Passwort eingeben.";
@@ -114,14 +110,11 @@ export default function Passwordaendern() {
     }
   };
 
-  // ---------- Submit / API-Call ----------
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
     setServerSuccess("");
 
-    // Optional aber sehr hilfreich: früh merken, falls ENV in Vercel fehlt
     if (!API_BASE_URL) {
       setServerError(
         "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt. Bitte in Vercel (oder lokal .env) setzen."
@@ -141,7 +134,7 @@ export default function Passwordaendern() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: emailFromStorage, // falls Backend das braucht
+          email: emailFromStorage,
           oldPassword,
           newPassword,
         }),
@@ -158,14 +151,12 @@ export default function Passwordaendern() {
       } else {
         setServerSuccess("Passwort erfolgreich geändert.");
 
-        // optional: Formular leeren
         setOldPassword("");
         setNewPassword("");
         setNewPassword2("");
         setTouched({});
         setErrors({});
 
-        // optional: zurück in den Bereich /dashboard
         setTimeout(() => {
           navigate("/dashboard");
         }, 900);
@@ -196,7 +187,6 @@ export default function Passwordaendern() {
         </p>
       )}
 
-      {/* Server-Meldungen */}
       {serverError && (
         <div className="mb-4 rounded-full bg-red-100 px-4 py-2 text-center text-xs font-medium text-red-700">
           {serverError}
@@ -210,7 +200,6 @@ export default function Passwordaendern() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Aktuelles Passwort */}
         <div>
           <div className="relative">
             <input
@@ -251,7 +240,6 @@ export default function Passwordaendern() {
           )}
         </div>
 
-        {/* Neues Passwort */}
         <div>
           <div className="relative">
             <input
@@ -268,7 +256,7 @@ export default function Passwordaendern() {
                     ),
                   }));
                 }
-                // confirm ggf. live nachziehen
+
                 if (touched.newPassword2) {
                   setErrors((prev) => ({
                     ...prev,
@@ -300,7 +288,6 @@ export default function Passwordaendern() {
           )}
         </div>
 
-        {/* Neues Passwort bestätigen */}
         <div>
           <div className="relative">
             <input
@@ -339,7 +326,6 @@ export default function Passwordaendern() {
           )}
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={isSubmitting}
@@ -352,7 +338,6 @@ export default function Passwordaendern() {
           {isSubmitting ? "Wird gespeichert …" : "Passwort ändern"}
         </button>
 
-        {/* Abbrechen */}
         <button
           type="button"
           onClick={() => navigate(-1)}

@@ -1,14 +1,12 @@
-// src/pages/Haufig.jsx
 import React, { useEffect, useState } from "react";
 import "../styles/scrollAnimations.css";
 
 export default function Haufig() {
-  const [faqs, setFaqs] = useState([]); // { q, a, rank, count, lastAsked }
+  const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openIndex, setOpenIndex] = useState(null);
 
   useEffect(() => {
-    // Fade-In Animation
     const elements = document.querySelectorAll(".fade-element");
     elements.forEach((el) => el.classList.remove("visible"));
 
@@ -29,11 +27,9 @@ export default function Haufig() {
       }
     };
 
-    // ✅ TopFAQ Endpoint (liefert bei dir: [ { success:true, topQuestions:[...]} ])
     const TOPFAQ_URL = "https://bw13.app.n8n.cloud/webhook/api/top-faq";
 
     const normalizeTopFaqResponse = (raw) => {
-      // ✅ wenn n8n ein Array liefert -> erstes Element nehmen
       const data = Array.isArray(raw) ? raw[0] : raw;
 
       if (data?.success && Array.isArray(data?.topQuestions)) {
@@ -51,7 +47,6 @@ export default function Haufig() {
 
             const lastAsked = formatLastAsked(item?.lastAsked);
 
-            // Meta-Text (unten an die Antwort)
             const metaParts = [];
             if (count !== null) metaParts.push(`🔥 ${count}x gefragt`);
             metaParts.push(`Zuletzt: ${lastAsked}`);
@@ -104,7 +99,6 @@ export default function Haufig() {
 
   return (
     <div className="w-full h-full px-4 pt-8 pb-12 md:px-10">
-      {/* Header */}
       <div className="fade-element text-center">
         <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
           Häufig gestellte Fragen
@@ -115,7 +109,6 @@ export default function Haufig() {
         </p>
       </div>
 
-      {/* FAQ Container */}
       <div className="fade-element mt-10 max-w-5xl mx-auto">
         {loading && <p className="text-center text-gray-500">Lade FAQs...</p>}
 
@@ -138,7 +131,6 @@ export default function Haufig() {
                   className="w-full px-6 md:px-8 py-6 flex items-center justify-between text-left hover:bg-gray-50 transition cursor-pointer"
                 >
                   <div className="flex items-start gap-4">
-                    {/* Rank #1 #2 ... */}
                     <div className="min-w-[44px] text-center">
                       <span className="text-2xl md:text-3xl font-extrabold text-[#667eea] leading-none">
                         #{item.rank}
@@ -160,7 +152,6 @@ export default function Haufig() {
                   </span>
                 </button>
 
-                {/* Answer */}
                 <div
                   className={`px-6 md:px-8 overflow-hidden transition-all duration-300 ${
                     isOpen ? "max-h-96 pb-6" : "max-h-0"

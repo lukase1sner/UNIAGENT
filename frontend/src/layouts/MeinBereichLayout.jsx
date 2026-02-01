@@ -1,4 +1,3 @@
-// src/layouts/MeinBereichLayout.jsx
 import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import "../styles/LandingLayout.css";
@@ -17,7 +16,6 @@ export default function MeinBereichLayout() {
       "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
   };
 
-  // 🔄 User aus LocalStorage laden
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
@@ -51,16 +49,13 @@ export default function MeinBereichLayout() {
     navigate("/login");
   };
 
-  // kleine Helper-Funktion für Navigation (schließt auch das Mobile-Menü)
   const goTo = (path) => {
     setMobileMenuOpen(false);
     navigate(path);
   };
 
-  // ✅ aktiver Menüpunkt per Route
   const isActive = (path) => location.pathname === path;
 
-  // Mobile Menü-Items
   const mobileItems = [
     { icon: "team_dashboard", label: "Dashboard", path: "/dashboard" },
     { icon: "question_exchange", label: "Häufig gestellte Fragen", path: null },
@@ -71,9 +66,7 @@ export default function MeinBereichLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* HEADER */}
       <header className="w-full py-4 px-4 lg:py-6 lg:px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
-        {/* ✅ Klick führt IMMER zum Dashboard */}
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
           onClick={() => navigate("/dashboard")}
@@ -85,7 +78,6 @@ export default function MeinBereichLayout() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* ✅ Logout Icon vor Abmelden */}
           <button
             onClick={() => setShowLogoutModal(true)}
             className="hidden lg:inline-flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
@@ -107,12 +99,9 @@ export default function MeinBereichLayout() {
         </div>
       </header>
 
-      {/* MOBILE MENU */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden bg-white/55 backdrop-blur-xl">
-          {/* Top bar */}
           <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-white/60">
-            {/* ✅ Auch hier Klick zum Dashboard */}
             <div
               className="flex items-center gap-3 select-none cursor-pointer"
               onClick={() => {
@@ -136,7 +125,6 @@ export default function MeinBereichLayout() {
             </button>
           </div>
 
-          {/* Items + Logout */}
           <div className="px-4 py-5 flex flex-col h-[calc(100vh-72px)]">
             <nav className="flex flex-col gap-2">
               {mobileItems.map((item) => {
@@ -179,14 +167,11 @@ export default function MeinBereichLayout() {
         </div>
       )}
 
-      {/* MAIN */}
       <main className="flex-1 flex flex-col">
-        {/* DESKTOP */}
         <div
           className="hidden lg:flex flex-1 relative isolate"
           style={gradientStyle}
         >
-          {/* SIDEBAR (GLASS) */}
           <aside
             className={`${
               collapsed ? "w-20" : "w-72"
@@ -194,7 +179,6 @@ export default function MeinBereichLayout() {
           >
             {collapsed ? (
               <div className="flex flex-col items-center h-full">
-                {/* MENU ICON */}
                 <div className="relative group">
                   <button
                     onClick={() => setCollapsed(false)}
@@ -205,7 +189,6 @@ export default function MeinBereichLayout() {
                     </span>
                   </button>
 
-                  {/* Tooltip */}
                   <div
                     className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
                                bg-black text-white text-xs rounded px-2 py-1 opacity-0
@@ -216,7 +199,6 @@ export default function MeinBereichLayout() {
                 </div>
 
                 <div className="flex flex-col items-center gap-4 mt-4">
-                  {/* Dashboard Icon */}
                   <div className="relative group">
                     <button
                       onClick={() => goTo("/dashboard")}
@@ -231,7 +213,6 @@ export default function MeinBereichLayout() {
                       </span>
                     </button>
 
-                    {/* Tooltip */}
                     <div
                       className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
                                  bg-black text-white text-xs rounded px-2 py-1 opacity-0
@@ -275,7 +256,6 @@ export default function MeinBereichLayout() {
                           </span>
                         </button>
 
-                        {/* Tooltip */}
                         <div
                           className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2
                                      bg-black text-white text-xs rounded px-2 py-1 opacity-0
@@ -307,7 +287,6 @@ export default function MeinBereichLayout() {
                       </span>
                     </button>
 
-                    {/* Tooltip */}
                     <div
                       className="pointer-events-none absolute right-full mr-2 top-1/2 -translate-y-1/2
                                  bg-black text-white text-xs rounded px-2 py-1 opacity-0
@@ -365,7 +344,6 @@ export default function MeinBereichLayout() {
           </section>
         </div>
 
-        {/* MOBILE CONTENT */}
         <div className="flex lg:hidden flex-1" style={gradientStyle}>
           <section className="flex-1 flex flex-col">
             <Outlet />
@@ -373,9 +351,7 @@ export default function MeinBereichLayout() {
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
-        {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
           <a href="#funktionen" className="hover:underline underline-offset-4">
             Funktionen
@@ -395,7 +371,6 @@ export default function MeinBereichLayout() {
           </span>
         </div>
 
-        {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
           <a
             href="#funktionen"
@@ -428,7 +403,6 @@ export default function MeinBereichLayout() {
         </div>
       </footer>
 
-      {/* LOGOUT MODAL */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-lg max-w-sm w-full mx-4 p-6">

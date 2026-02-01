@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/service/SupabaseAuthClient.java
 package com.uniagent.backend.service;
 
 import com.uniagent.backend.config.SupabaseConfig;
@@ -26,15 +25,8 @@ public class SupabaseAuthClient {
         this.serviceRoleKey = config.getServiceRoleKey(); // wichtig für Admin-Calls
     }
 
-    /**
-     * Minimaler DTO für Supabase User (aus /auth/v1/user).
-     */
     public record SupabaseUser(String id, String email) {}
 
-    // --------------------------------------------------------------
-    // SIGNUP (Registrierung) – erstellt User per Admin-Endpoint
-    // → email_confirm = true => kein "Waiting for verification"
-    // --------------------------------------------------------------
     public SupabaseSignUpResponse signUp(
             String email,
             String password,
@@ -77,9 +69,6 @@ public class SupabaseAuthClient {
         }
     }
 
-    // --------------------------------------------------------------
-    // LOGIN (Email + Passwort)
-    // --------------------------------------------------------------
     public Map<String, Object> login(String email, String password) {
         try {
             String url = supabaseUrl + "/auth/v1/token?grant_type=password";
@@ -113,10 +102,6 @@ public class SupabaseAuthClient {
         }
     }
 
-    // --------------------------------------------------------------
-    // USER AUS TOKEN (für "Mein Bereich" Profil-Update)
-    // -> nutzt /auth/v1/user mit anon key + bearer token
-    // --------------------------------------------------------------
     @SuppressWarnings("unchecked")
     public SupabaseUser getUserFromAccessToken(String accessToken) {
         try {
@@ -154,10 +139,6 @@ public class SupabaseAuthClient {
         }
     }
 
-    // --------------------------------------------------------------
-    // USER UPDATE (Admin) - Email + Metadata
-    // -> nutzt /auth/v1/admin/users/{id} mit service role key
-    // --------------------------------------------------------------
     public boolean updateUserAdmin(String authUserId, String email, String firstName, String lastName) {
         try {
             String url = supabaseUrl + "/auth/v1/admin/users/" + authUserId;
@@ -194,9 +175,6 @@ public class SupabaseAuthClient {
         }
     }
 
-    // --------------------------------------------------------------
-    // PASSWORT-UPDATE (Admin-Endpoint)
-    // --------------------------------------------------------------
     public boolean updatePasswordAdmin(String authUserId, String newPassword) {
         try {
             String url = supabaseUrl + "/auth/v1/admin/users/" + authUserId;

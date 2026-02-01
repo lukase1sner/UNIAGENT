@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 
 export default function DashboardSupport() {
-  // -----------------------------
-  // Hardcoded Tickets (Demo)
-  // -----------------------------
   const initialTickets = useMemo(
     () => [
       {
@@ -29,7 +26,7 @@ export default function DashboardSupport() {
   );
 
   const [tickets, setTickets] = useState(initialTickets);
-  const [activeTab, setActiveTab] = useState("open"); // open | answered
+  const [activeTab, setActiveTab] = useState("open");
   const [selectedId, setSelectedId] = useState(null);
   const [answer, setAnswer] = useState("");
   const [flash, setFlash] = useState("");
@@ -73,7 +70,6 @@ export default function DashboardSupport() {
     <div className="p-6">
       <h1 className="text-2xl font-semibold text-black">Support-Dashboard</h1>
 
-      {/* KPI-Kacheln */}
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Eingegangene Anfragen</p>
@@ -91,11 +87,8 @@ export default function DashboardSupport() {
         </div>
       </div>
 
-      {/* Tabs + Content */}
       <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Liste + Tabs */}
         <div className="rounded-2xl bg-white p-4 shadow-sm lg:col-span-1">
-          {/* Tabs */}
           <div className="mb-4 flex gap-2">
             {[
               { key: "open", label: "Offen" },
@@ -119,7 +112,6 @@ export default function DashboardSupport() {
             ))}
           </div>
 
-          {/* Ticketliste */}
           <div className="space-y-2">
             {filteredTickets.length === 0 && (
               <p className="text-sm text-gray-500">
@@ -149,7 +141,6 @@ export default function DashboardSupport() {
           </div>
         </div>
 
-        {/* Detail + Antwort */}
         <div className="rounded-2xl bg-white p-5 shadow-sm lg:col-span-2">
           {!selected ? (
             <p className="text-sm text-gray-600">

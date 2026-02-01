@@ -43,8 +43,6 @@ public class LoginResponse {
         this.role = role;
     }
 
-    // ---------- GETTER & SETTER ----------
-
     public boolean isSuccess() {
         return success;
     }

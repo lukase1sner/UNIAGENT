@@ -1,4 +1,3 @@
-// src/pages/ChatbotStart.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
@@ -26,7 +25,6 @@ export default function ChatbotStart() {
   }, [currentUser]);
 
   const apiBase = useMemo(() => {
-    // Wenn API_BASE_URL nicht gesetzt ist, nimm relative Calls -> /api/...
     const v = (API_BASE_URL || "").trim();
     return v ? v.replace(/\/$/, "") : "";
   }, []);
@@ -64,7 +62,6 @@ export default function ChatbotStart() {
       });
 
       if (!res.ok) {
-        // versuche Server-Fehlertext zu lesen (super hilfreich beim Debug)
         let serverText = "";
         try {
           serverText = await res.text();
@@ -74,7 +71,6 @@ export default function ChatbotStart() {
 
       const data = await res.json();
 
-      // Erwartet: { id: "<chatId>" }
       navigate("/chat", {
         state: {
           chatId: data.id,
@@ -87,7 +83,7 @@ export default function ChatbotStart() {
         "Chat konnte nicht erstellt werden.\n\n" +
           (err?.message || "Bitte versuche es erneut.")
       );
-      // Input zurück, damit der Nutzer nicht alles verliert
+
       setInput(trimmed);
     } finally {
       setIsCreating(false);

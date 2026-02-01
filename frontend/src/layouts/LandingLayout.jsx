@@ -1,4 +1,3 @@
-// src/layouts/LandingLayout.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/LandingLayout.css";
@@ -8,9 +7,7 @@ export default function LandingLayout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* Navbar */}
       <header className="w-full py-6 px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
-        {/* UNIAGENT Logo – wie Register & Chatbot */}
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
           onClick={() => navigate("/")}
@@ -21,7 +18,6 @@ export default function LandingLayout({ children }) {
           <span className="text-xl font-semibold tracking-tight">UNIAGENT</span>
         </div>
 
-        {/* Navigation */}
         <nav className="hidden md:flex gap-8 text-gray-700 font-medium">
           <a
             href="#startseite"
@@ -37,7 +33,6 @@ export default function LandingLayout({ children }) {
           </a>
         </nav>
 
-        {/* Anmelden Button → führt korrekt zu /login */}
         <button
           onClick={() => navigate("/login")}
           className="flex items-center gap-2 px-5 py-2 rounded-full border border-black font-medium
@@ -50,12 +45,9 @@ export default function LandingLayout({ children }) {
         </button>
       </header>
 
-      {/* Page Content */}
       <main className="flex-1">{children}</main>
 
-      {/* FOOTER – identisch zum Dashboard-Footer */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
-        {/* MOBILE — linksbündig */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
           <a href="#funktionen" className="hover:text-gray-800 transition">
             Funktionen
@@ -75,7 +67,6 @@ export default function LandingLayout({ children }) {
           </span>
         </div>
 
-        {/* DESKTOP — eine Reihe, © am ENDE */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
           <a
             href="#funktionen"

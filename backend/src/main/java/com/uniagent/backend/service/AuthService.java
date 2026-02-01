@@ -1,4 +1,3 @@
-// backend/src/main/java/com/uniagent/backend/service/AuthService.java
 package com.uniagent.backend.service;
 
 import com.uniagent.backend.dto.ChangePasswordRequest;
@@ -33,12 +32,9 @@ public class AuthService {
         this.supabaseDatabaseClient = supabaseDatabaseClient;
     }
 
-    // -----------------------------------------------------
-    // REGISTRIERUNG
-    // -----------------------------------------------------
     public RegisterResponse register(RegisterRequest request) {
         try {
-            // 1) User in Supabase Auth anlegen
+            // User in Supabase Auth anlegen
             SupabaseSignUpResponse signUpResponse = supabaseAuthClient.signUp(
                     request.getEmail(),
                     request.getPassword(),
@@ -52,7 +48,7 @@ public class AuthService {
                 return new RegisterResponse(false, "Registrierung bei Supabase fehlgeschlagen.");
             }
 
-            // 2) User in eigener Tabelle speichern
+            // User in eigener Tabelle speichern
             try {
                 supabaseDatabaseClient.insertUser(
                         signUpResponse.getId(),
@@ -76,12 +72,9 @@ public class AuthService {
         }
     }
 
-    // -----------------------------------------------------
-    // LOGIN
-    // -----------------------------------------------------
     public LoginResponse login(LoginRequest request) {
         try {
-            // 1) Login bei Supabase (Email + Passwort)
+            // Login bei Supabase (Email + Passwort)
             Map<String, Object> loginResult =
                     supabaseAuthClient.login(request.getEmail(), request.getPassword());
 
@@ -103,7 +96,7 @@ public class AuthService {
 
             String authUserId = (String) user.get("id");
 
-            // 2) Benutzer aus eigener users-Tabelle holen
+            // Benutzer aus eigener users-Tabelle holen
             Optional<SupabaseDatabaseClient.UserRecord> userOpt =
                     supabaseDatabaseClient.findByAuthUserId(authUserId);
 
@@ -121,7 +114,7 @@ public class AuthService {
                     userRecord.role()
             );
 
-            // 3) Erfolgsantwort – Token + Profil-Daten
+            // Erfolgsantwort Token + Profil-Daten
             return new LoginResponse(
                     true,
                     "Login erfolgreich.",
@@ -141,12 +134,9 @@ public class AuthService {
         }
     }
 
-    // -----------------------------------------------------
-    // PASSWORT ÄNDERN
-    // -----------------------------------------------------
     public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
         try {
-            // 1) Altes Passwort prüfen (Re-Login)
+            // Altes Passwort prüfen
             Map<String, Object> loginResult =
                     supabaseAuthClient.login(request.getEmail(), request.getOldPassword());
 
@@ -162,7 +152,7 @@ public class AuthService {
 
             String authUserId = (String) user.get("id");
 
-            // 2) Neues Passwort setzen (Supabase Admin)
+            // Neues Passwort setzen
             boolean updated = supabaseAuthClient.updatePasswordAdmin(
                     authUserId,
                     request.getNewPassword()
@@ -180,16 +170,13 @@ public class AuthService {
         }
     }
 
-    // -----------------------------------------------------
-    // PROFIL AKTUALISIEREN (Mein Bereich)
-    // -----------------------------------------------------
     public UpdateProfileResponse updateProfile(String accessToken, UpdateProfileRequest request) {
         try {
             if (accessToken == null || accessToken.isBlank()) {
                 return new UpdateProfileResponse(false, "Token fehlt.");
             }
 
-            // 1) User-ID aus Token ermitteln (sicher: user kann nur sich selbst updaten)
+            // User-ID aus Token ermitteln (user kann nur sich selbst updaten)
             SupabaseAuthClient.SupabaseUser supaUser = supabaseAuthClient.getUserFromAccessToken(accessToken);
             if (supaUser == null || supaUser.id() == null || supaUser.id().isBlank()) {
                 return new UpdateProfileResponse(false, "Ungültiger Token.");
@@ -197,14 +184,14 @@ public class AuthService {
 
             String authUserId = supaUser.id();
 
-            // 2) Eigene users-Tabelle aktualisieren (Vorname/Nachname)
+            // Eigene users-Tabelle aktualisieren (Vorname/Nachname)
             supabaseDatabaseClient.updateUserNames(
                     authUserId,
                     request.getFirstName(),
                     request.getLastName()
             );
 
-            // 3) Supabase Auth aktualisieren (E-Mail + metadata) (Admin API, server-side)
+            // Supabase Auth aktualisieren (E-Mail + metadata)
             boolean ok = supabaseAuthClient.updateUserAdmin(
                     authUserId,
                     request.getEmail(),

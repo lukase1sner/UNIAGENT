@@ -1,4 +1,3 @@
-// src/layouts/PasswordaendernLayout.jsx
 import { Outlet } from "react-router-dom";
 import "../styles/Register.css";
 
@@ -11,10 +10,9 @@ export default function PasswordaendernLayout() {
           "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
       }}
     >
-      {/* HEADER */}
+
       <header className="relative z-20 flex items-center justify-between px-8 py-6 md:px-16">
         <div className="flex items-center gap-3">
-          {/* UNIAGENT Logo Kreis – weiß */}
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-bold text-black shadow-md">
             🎓
           </div>
@@ -35,10 +33,8 @@ export default function PasswordaendernLayout() {
         </nav>
       </header>
 
-      {/* MAIN CONTENT */}
       <main className="relative z-10 flex flex-1 items-center justify-center px-6 pb-10 pt-4 md:px-16 md:pb-16">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 md:flex-row md:items-stretch md:gap-16">
-          {/* LEFT SECTION */}
           <section className="flex-1 text-center md:text-left">
             <h1 className="mb-4 text-3xl font-bold leading-tight text-black md:text-4xl">
               Ändere dein{" "}
@@ -47,7 +43,6 @@ export default function PasswordaendernLayout() {
               </span>
             </h1>
 
-            {/* INFOBOX */}
             <div className="mt-8 max-w-xl rounded-3xl bg-white/70 p-6 md:p-7 shadow-md border border-white/60 text-left">
               <p className="mb-4 text-sm leading-relaxed text-gray-900">
                 Aus Sicherheitsgründen empfehlen wir ein{" "}
@@ -75,16 +70,13 @@ export default function PasswordaendernLayout() {
             </div>
           </section>
 
-          {/* RIGHT: FORM (OUTLET) */}
           <section className="flex-1 flex items-center justify-center w-full">
             <Outlet />
           </section>
         </div>
       </main>
 
-      {/* FOOTER – wie Login/Dashboard */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
-        {/* MOBILE */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
           <a href="/#funktionen" className="hover:text-gray-800 transition">
             Funktionen
@@ -104,7 +96,6 @@ export default function PasswordaendernLayout() {
           </span>
         </div>
 
-        {/* DESKTOP */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
           <a
             href="/#funktionen"

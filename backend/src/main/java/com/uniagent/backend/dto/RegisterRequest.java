@@ -26,8 +26,6 @@ public class RegisterRequest {
     )
     private String password;
 
-    // === Getter & Setter ===
-
     public String getFirstName() {
         return firstName;
     }

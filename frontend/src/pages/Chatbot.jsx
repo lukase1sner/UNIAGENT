@@ -1,4 +1,3 @@
-// src/pages/Chatbot.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
@@ -18,9 +17,6 @@ export default function Chatbot() {
   const chatIdRef = useRef(null);
   const bottomRef = useRef(null);
 
-  // ----------------------------------
-  // URLs
-  // ----------------------------------
   const N8N_URL =
     (ENV_N8N_WEBHOOK_URL && String(ENV_N8N_WEBHOOK_URL).trim()) ||
     "https://bw13.app.n8n.cloud/webhook/b1a8fcf2-9b73-4f0b-b038-ffa30af05522/chat";
@@ -30,16 +26,10 @@ export default function Chatbot() {
 
   const isReadyToSend = input.trim().length > 0 && !isLoading;
 
-  // ----------------------------------
-  // Auto-Scroll
-  // ----------------------------------
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // ----------------------------------
-  // LocalStorage
-  // ----------------------------------
   const getUser = () => {
     try {
       const raw = localStorage.getItem("uniagentUser");
@@ -59,9 +49,6 @@ export default function Chatbot() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  // ----------------------------------
-  // Bot-Text extrahieren
-  // ----------------------------------
   const extractBotText = (data) => {
     if (!data) return null;
     if (typeof data === "string") return data;
@@ -82,9 +69,6 @@ export default function Chatbot() {
     return null;
   };
 
-  // ----------------------------------
-  // Messages laden
-  // ----------------------------------
   const loadMessages = async (chatId) => {
     const token = getToken();
     if (!token || !API_BASE_URL || !chatId) return;
@@ -126,9 +110,6 @@ export default function Chatbot() {
     }
   };
 
-  // ----------------------------------
-  // Chat-Wechsel
-  // ----------------------------------
   useEffect(() => {
     const cid = location.state?.chatId || null;
     if (cid) {
@@ -137,11 +118,8 @@ export default function Chatbot() {
       setMessages([]);
       loadMessages(cid);
     }
-  }, [location.state?.chatId]); // eslint-disable-line
+  }, [location.state?.chatId]);
 
-  // ----------------------------------
-  // Chat erstellen
-  // ----------------------------------
   const createChatIfNeeded = async (titleHint) => {
     if (chatIdRef.current) return chatIdRef.current;
 
@@ -167,9 +145,6 @@ export default function Chatbot() {
     return id;
   };
 
-  // ----------------------------------
-  // Message speichern
-  // ----------------------------------
   const saveMessage = async (chatId, sender, content) => {
     if (!chatId || !API_BASE_URL) return;
     const token = getToken();
@@ -187,9 +162,6 @@ export default function Chatbot() {
     window.dispatchEvent(new Event("uniagent:chatsChanged"));
   };
 
-  // ----------------------------------
-  // Nachricht senden
-  // ----------------------------------
   const sendMessageToBot = async (text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -244,20 +216,15 @@ export default function Chatbot() {
     sendMessageToBot(value);
   };
 
-  // initial message aus ChatbotStart
   useEffect(() => {
     const initial = location.state?.initialUserMessage;
     if (!initial || initialHandledRef.current) return;
     initialHandledRef.current = true;
     sendMessageToBot(initial);
-  }, [location.state?.initialUserMessage]); // eslint-disable-line
+  }, [location.state?.initialUserMessage]);
 
-  // ----------------------------------
-  // UI
-  // ----------------------------------
   return (
     <div className="flex flex-col h-full">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((m, i) => (
           <div
@@ -297,7 +264,6 @@ export default function Chatbot() {
         <div ref={bottomRef} />
       </div>
 
-      {/* 🔥 Chatbox – 1:1 wie ChatbotStart */}
       <div className="px-4 pb-4">
         <div className="relative p-[4px] rounded-2xl bg-gradient-to-b from-[#E4ECD9] to-[#98C73C90]">
           <div className="relative rounded-xl bg-white">

@@ -1,4 +1,3 @@
-// src/pages/Register.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
@@ -19,8 +18,6 @@ export default function Register() {
   const [serverSuccess, setServerSuccess] = useState("");
 
   const navigate = useNavigate();
-
-  // ---------- Validierung ----------
 
   const validateFirstName = (value) => {
     if (!value) return "Bitte Vornamen eingeben.";
@@ -72,7 +69,6 @@ export default function Register() {
       return "Dein Passwort muss mindestens eine Zahl enthalten.";
     }
 
-    // mind. ein Sonderzeichen (alles, was kein Buchstabe/Zahl ist)
     if (!/[^A-Za-z0-9]/.test(value)) {
       return "Dein Passwort muss mindestens ein Sonderzeichen enthalten.";
     }
@@ -145,14 +141,11 @@ export default function Register() {
     }
   };
 
-  // ---------- Submit / API-Call ----------
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
     setServerSuccess("");
 
-    // Optional aber sehr hilfreich: früh merken, falls ENV in Vercel fehlt
     if (!API_BASE_URL) {
       setServerError(
         "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt. Bitte in Vercel (oder lokal .env) setzen."
@@ -209,7 +202,6 @@ export default function Register() {
         Registrieren
       </h1>
 
-      {/* Server-Meldungen */}
       {serverError && (
         <div className="mb-4 rounded-full bg-red-100 px-4 py-2 text-center text-xs font-medium text-red-700">
           {serverError}
@@ -223,7 +215,6 @@ export default function Register() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Vorname */}
         <div>
           <input
             type="text"
@@ -251,7 +242,6 @@ export default function Register() {
           )}
         </div>
 
-        {/* Nachname */}
         <div>
           <input
             type="text"
@@ -279,7 +269,6 @@ export default function Register() {
           )}
         </div>
 
-        {/* E-Mail */}
         <div>
           <input
             type="email"
@@ -307,7 +296,6 @@ export default function Register() {
           )}
         </div>
 
-        {/* Passwort */}
         <div>
           <div className="relative">
             <input
@@ -337,7 +325,6 @@ export default function Register() {
               placeholder="Passwort *"
             />
 
-            {/* Google Visibility Icons */}
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
@@ -353,7 +340,6 @@ export default function Register() {
           )}
         </div>
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting}
@@ -367,14 +353,12 @@ export default function Register() {
         </button>
       </form>
 
-      {/* Divider – schwarz */}
       <div className="my-6 flex items-center gap-4 text-xs text-black">
         <div className="h-px flex-1 bg-black" />
         <span className="shrink-0">ODER</span>
         <div className="h-px flex-1 bg-black" />
       </div>
 
-      {/* Login link */}
       <p className="text-center text-sm text-black">
         Du hast ein Konto?{" "}
         <a href="/login" className="font-bold text-black hover:underline">

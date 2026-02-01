@@ -1,4 +1,3 @@
-// src/layouts/DashboardSupportLayout.jsx
 import React, { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
@@ -27,7 +26,7 @@ export default function DashboardSupportLayout() {
           "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
       }}
     >
-      {/* SIDEBAR */}
+
       <aside
         className={
           "relative flex flex-col bg-white/35 backdrop-blur-xl border-r border-white/40 " +
@@ -35,10 +34,9 @@ export default function DashboardSupportLayout() {
           (collapsed ? "w-20" : "w-80")
         }
       >
-        {/* ===== TOP: BRAND + TOGGLE ===== */}
+
         <div className="px-4 pt-6 pb-4">
           <div className="flex items-center justify-between">
-            {/* ✅ Altes Logo wieder drin */}
             <div
               className={
                 "flex items-center gap-3 select-none cursor-pointer " +
@@ -61,7 +59,6 @@ export default function DashboardSupportLayout() {
               )}
             </div>
 
-            {/* Toggle */}
             <button
               onClick={() => setCollapsed((v) => !v)}
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/60 text-gray-900 shadow-sm transition hover:bg-white/80 cursor-pointer"
@@ -73,17 +70,13 @@ export default function DashboardSupportLayout() {
             </button>
           </div>
 
-          {/* ❌ Trennlinie unter Logo entfernt */}
         </div>
 
-        {/* ===== MIDDLE (divider centered) ===== */}
         <div className="relative flex-1">
-          {/* CENTER DIVIDER (sichtbar) */}
           <div className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 px-4">
             <div className="h-px w-full bg-gray-400/80" />
           </div>
 
-          {/* USER – direkt unter der mittigen Trennlinie */}
           <div className="absolute left-0 right-0 top-1/2 px-4 pt-4">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-black text-white font-bold">
@@ -99,7 +92,6 @@ export default function DashboardSupportLayout() {
           </div>
         </div>
 
-        {/* ===== BOTTOM: LOGOUT (left aligned, no button look) ===== */}
         <div className="px-4 pb-6 pt-4">
           <button
             onClick={handleLogout}
@@ -119,7 +111,6 @@ export default function DashboardSupportLayout() {
         </div>
       </aside>
 
-      {/* CONTENT */}
       <main className="flex-1">
         <Outlet />
       </main>

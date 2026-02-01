@@ -1,4 +1,3 @@
-// src/pages/MeinBereich.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
@@ -60,7 +59,6 @@ export default function MeinBereich() {
     setSaveMsg("");
     setSaveMsgIsError(false);
 
-    // Optional aber super hilfreich: sofort Fehler zeigen, falls ENV fehlt (Vercel)
     if (!API_BASE_URL) {
       setSaveMsgIsError(true);
       setSaveMsg(

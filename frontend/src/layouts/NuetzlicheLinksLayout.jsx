@@ -1,4 +1,3 @@
-// src/layouts/NuetzlicheLinksLayout.jsx
 import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import "../styles/LandingLayout.css";
@@ -17,7 +16,6 @@ export default function NuetzlicheLinksLayout() {
       "linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%)",
   };
 
-  // 🔒 Body scroll lock wenn Mobile Menü offen
   useEffect(() => {
     if (mobileMenuOpen) {
       const prev = document.body.style.overflow;
@@ -28,7 +26,6 @@ export default function NuetzlicheLinksLayout() {
     }
   }, [mobileMenuOpen]);
 
-  // 🔄 User aus LocalStorage laden
   useEffect(() => {
     try {
       const stored = localStorage.getItem("uniagentUser");
@@ -75,7 +72,6 @@ export default function NuetzlicheLinksLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* HEADER */}
       <header className="w-full py-4 px-4 lg:py-6 lg:px-10 flex justify-between items-center bg-[#E4ECD9] shadow-sm">
         <div
           className="flex items-center gap-3 select-none cursor-pointer"
@@ -107,10 +103,8 @@ export default function NuetzlicheLinksLayout() {
         </div>
       </header>
 
-      {/* MOBILE MENU (modern + scroll nur im menü) */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden bg-white/55 backdrop-blur-xl">
-          {/* Top bar */}
           <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-white/60">
             <div
               className="flex items-center gap-3 select-none cursor-pointer"
@@ -133,7 +127,6 @@ export default function NuetzlicheLinksLayout() {
             </button>
           </div>
 
-          {/* Scrollbarer Content */}
           <div className="px-4 py-5 flex flex-col h-[calc(100vh-72px)] overflow-y-auto">
             <nav className="flex flex-col gap-2">
               {navItems.map((item) => {
@@ -172,11 +165,8 @@ export default function NuetzlicheLinksLayout() {
         </div>
       )}
 
-      {/* MAIN */}
       <main className="flex-1 flex flex-col">
-        {/* DESKTOP */}
         <div className="hidden lg:flex flex-1 relative isolate" style={gradientStyle}>
-          {/* SIDEBAR (GLASS) */}
           <aside
             className={`${
               collapsed ? "w-20" : "w-72"
@@ -184,7 +174,6 @@ export default function NuetzlicheLinksLayout() {
           >
             {collapsed ? (
               <div className="flex flex-col items-center h-full">
-                {/* MENU ICON */}
                 <div className="relative group">
                   <button
                     onClick={() => setCollapsed(false)}
@@ -296,7 +285,6 @@ export default function NuetzlicheLinksLayout() {
           </section>
         </div>
 
-        {/* MOBILE CONTENT */}
         <div className="flex lg:hidden flex-1" style={gradientStyle}>
           <section className="flex-1 flex flex-col">
             <Outlet />
@@ -304,9 +292,7 @@ export default function NuetzlicheLinksLayout() {
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="bg-[#E4ECD9] mt-0 py-8">
-        {/* MOBILE */}
         <div className="w-full px-6 flex flex-col gap-3 text-sm text-black lg:hidden text-left">
           <a href="#funktionen" className="hover:underline underline-offset-4 transition">
             Funktionen
@@ -326,7 +312,6 @@ export default function NuetzlicheLinksLayout() {
           </span>
         </div>
 
-        {/* DESKTOP */}
         <div className="hidden lg:flex w-full items-center justify-center gap-6 text-sm text-black">
           <a href="#funktionen" className="hover:underline underline-offset-4 transition cursor-pointer">
             Funktionen
@@ -345,7 +330,6 @@ export default function NuetzlicheLinksLayout() {
         </div>
       </footer>
 
-      {/* LOGOUT MODAL */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-lg max-w-sm w-full mx-4 p-6">

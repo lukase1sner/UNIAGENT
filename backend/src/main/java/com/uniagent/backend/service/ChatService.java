@@ -20,7 +20,6 @@ public class ChatService {
     private UUID requireAuthUserId(String token) {
         var user = supabaseAuthClient.getUserFromAccessToken(token);
 
-        // ✅ record accessors: user.id() statt user.getId()
         String id = (user == null) ? null : user.id();
 
         if (id == null || id.isBlank()) {
@@ -67,7 +66,6 @@ public class ChatService {
 
         supabaseDatabaseClient.addMessage(authUserId, cid, sender, request.getContent().trim());
 
-        // Optional: Titel beim ersten User-Text automatisch setzen (wenn noch "Neuer Chat")
         if (sender.equals("user")) {
             supabaseDatabaseClient.maybeAutoTitle(authUserId, cid, request.getContent().trim());
         }

@@ -17,8 +17,6 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  // ---------- Validierung ----------
-
   const validateEmail = (value) => {
     if (!value) return "Bitte E-Mail-Adresse eingeben.";
 
@@ -99,14 +97,11 @@ export default function Login() {
     }
   };
 
-  // ---------- Submit / API-Call ----------
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
     setServerSuccess("");
 
-    // Optional aber sehr hilfreich: früh merken, falls ENV in Vercel fehlt
     if (!API_BASE_URL) {
       setServerError(
         "Konfiguration fehlt: VITE_API_BASE_URL ist nicht gesetzt. Bitte in Vercel (oder lokal .env) setzen."
@@ -136,8 +131,8 @@ export default function Login() {
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           email: data.email || email,
-          role: data.role, // ⭐ NEU
-          token: data.token, // ⭐ NEU
+          role: data.role,
+          token: data.token,
         };
 
         localStorage.setItem("uniagentUser", JSON.stringify(userForStorage));
@@ -146,7 +141,7 @@ export default function Login() {
 
         setTimeout(() => {
           if (data.role === "Support") {
-            navigate("/support"); // ⭐ NEU
+            navigate("/support");
           } else {
             navigate("/dashboard");
           }
@@ -181,7 +176,6 @@ export default function Login() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* E-Mail */}
         <div>
           <input
             type="email"
@@ -209,7 +203,6 @@ export default function Login() {
           )}
         </div>
 
-        {/* Passwort */}
         <div>
           <div className="relative">
             <input
